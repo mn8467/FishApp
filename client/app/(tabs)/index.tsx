@@ -10,7 +10,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/api", {
+        const response = await axios.get("http://localhost:8080/api/home", {
           withCredentials: true,
         });
         setData(response.data);

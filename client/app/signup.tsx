@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import {TouchableOpacity, View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
 import axios from "axios";
 import { useRouter } from "expo-router";
 
 export default function Signup() {
   const router = useRouter();
   const [form, setForm] = useState({
-    userName: "",
-    email: "",
-    password: "",
+    userName: "", // ID
+    nickname: "", // 닉네임
+    email: "", // 이메일 인증
+    password: "", // 비밀번호
   });
 
   const [loading, setLoading] = useState(false);
@@ -20,10 +21,10 @@ export default function Signup() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const res = await axios.post("http://<서버IP>:8080/api/user/signup", form);
+      const res = await axios.post("http://localhost:8080/api/users", form);
 
       if (res.status === 200 || res.status === 201) {
-        setForm({ userName: "", email: "", password: "" });
+        setForm({ userName: "",nickname: "", password: "" , email: ""});
         Alert.alert("회원가입 성공! 🎉");
       } else {
         Alert.alert("회원가입 실패", res.data?.message || "알 수 없는 오류");
@@ -40,11 +41,19 @@ export default function Signup() {
       <Text>회원가입</Text>
 
       <TextInput
-        placeholder="이름"
+        placeholder="아이디"
         value={form.userName}
         onChangeText={(value) => handleChange("userName", value)}
         style={styles.input}
       />
+
+      <TextInput
+        placeholder="닉네임"
+        value={form.nickname}
+        onChangeText={(value) => handleChange("nickname", value)}
+        style={styles.input}
+      />
+
 
       <TextInput
         placeholder="이메일"
@@ -53,6 +62,10 @@ export default function Signup() {
         style={styles.input}
       />
 
+      <TouchableOpacity onPress={() => console.log("이메일 인증")}>
+        <Text>이메일 인증</Text>
+      </TouchableOpacity>
+      
       <TextInput
         placeholder="비밀번호"
         secureTextEntry

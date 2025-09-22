@@ -1,0 +1,30 @@
+{
+  /* 컴파일할 소스 경로 */
+  "include": ["src/**/*"],
+
+  /* 빌드 제외할 항목 */
+  "exclude": ["node_modules"],
+
+  "compilerOptions": {
+    /* Node.js 실행 환경 */
+    "target": "ES2020",                 // 실행 환경 맞게 (ESNext까지 필요 없음)
+    "module": "CommonJS",               // Node.js 실행 용도 → CommonJS 권장
+    "esModuleInterop": true,            // import/require 호환
+    "types": ["node"],                  // Node.js 타입 로딩
+    "lib": ["ES2020"],
+
+    /* 디버깅 편의 */
+    "sourceMap": true,                  // 소스맵 생성
+    "strict": true,                     // 엄격 모드
+    "skipLibCheck": true,               // 라이브러리 타입 검사 생략
+
+    /* 스타일 옵션 */
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    /* JSX 필요 없음 (RN은 클라이언트 쪽 tsconfig에서 관리) */
+    "jsx": "react-jsx"
+  },
+
+
+}
