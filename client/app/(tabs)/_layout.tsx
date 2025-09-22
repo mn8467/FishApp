@@ -20,6 +20,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
+          tabBarLabel: () => null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
@@ -27,9 +28,30 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: 'Explore',
+            tabBarLabel: () => null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="like"
+        options={{
+          title: 'Like',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="heart.fill" color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="mypage"
+        options={{
+          title: 'Mypage',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="person.fill" color={color} />
+          ),
+        }}
+      />
+      
     </Tabs>
   );
 }
