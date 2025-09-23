@@ -22,11 +22,19 @@ export default function Signup() {
     setLoading(true);
     try {
       const res = await axios.post("http://localhost:8080/api/users", form);
-
-      if (res.status === 200 || res.status === 201) {
-        setForm({ userName: "",nickname: "", password: "" , email: ""});
-        Alert.alert("회원가입 성공! 🎉");
-      } else {
+    if (res.status === 200 || res.status === 201) {
+      setForm({ userName: "", nickname: "", password: "", email: "" });
+      Alert.alert(
+        "회원가입 성공",
+        undefined,
+        [
+          {
+            text: "확인",
+            onPress: () => router.push("/mypage"), // ✅ 확인 버튼 누르면 이동
+          },
+        ]
+      );
+    }else {
         Alert.alert("회원가입 실패", res.data?.message || "알 수 없는 오류");
       }
     } catch (error: any) {
@@ -40,39 +48,34 @@ export default function Signup() {
     <View style={styles.container}>
       <Text>회원가입</Text>
 
-      <TextInput
-        placeholder="아이디"
-        value={form.userName}
-        onChangeText={(value) => handleChange("userName", value)}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="아이디"
+          value={form.userName}
+          onChangeText={(value) => handleChange("userName", value)}
+          style={[styles.input, { color: "black", backgroundColor: "white" }]}
+        />
 
-      <TextInput
-        placeholder="닉네임"
-        value={form.nickname}
-        onChangeText={(value) => handleChange("nickname", value)}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="닉네임"
+          value={form.nickname}
+          onChangeText={(value) => handleChange("nickname", value)}
+          style={[styles.input, { color: "black", backgroundColor: "white" }]}
+        />
 
+        <TextInput
+          placeholder="이메일"
+          value={form.email}
+          onChangeText={(value) => handleChange("email", value)}
+          style={[styles.input, { color: "black", backgroundColor: "white" }]}
+        />
 
-      <TextInput
-        placeholder="이메일"
-        value={form.email}
-        onChangeText={(value) => handleChange("email", value)}
-        style={styles.input}
-      />
-
-      <TouchableOpacity onPress={() => console.log("이메일 인증")}>
-        <Text>이메일 인증</Text>
-      </TouchableOpacity>
-      
-      <TextInput
-        placeholder="비밀번호"
-        secureTextEntry
-        value={form.password}
-        onChangeText={(value) => handleChange("password", value)}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="비밀번호"
+          secureTextEntry
+          value={form.password}
+          onChangeText={(value) => handleChange("password", value)}
+          style={[styles.input, { color: "black", backgroundColor: "white" }]}
+        />
 
       <Button title={loading ? "가입 중..." : "회원가입"} onPress={handleSubmit} disabled={loading} />
     </View>

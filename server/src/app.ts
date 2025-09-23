@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import userRouter from "./controller/user-controller";
+import userRouter from "./routes/user-routes";
 
 const app = express();
 const port = 8080;
@@ -23,7 +23,7 @@ app.get("/api/home", (req: Request, res: Response) => {
 });
 
 //user 경로 라우터
-app.use('/api',userRouter)
+app.use('/api/users',userRouter)
 
 
 // 서버 실행
