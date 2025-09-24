@@ -26,7 +26,7 @@ export const sendAuthNumber = async (email: string): Promise<void> => {
   const authNumber = Math.floor(Math.random() * 888888) + 111111;
 
   const mailOptions = {
-    from: "CodeTestTeam",
+    from: "mn8467@naver.com",
     to: email,
     subject: "[ScratchNow] 이메일 확인 인증번호 안내",
     text: `인증번호: ${authNumber}`,
@@ -44,4 +44,21 @@ export const sendAuthNumber = async (email: string): Promise<void> => {
   });
   return result === "OK"; 
   // OK면 발송 가능, null이면 이미 쿨타임 중
+};
+
+export const checkAuthNumber = async(authNumber: string, email:string): Promise<boolean> => {
+  const storedValue = await redisClient.get(`auth:${email}`);
+    if (!storedValue) {
+    console.log("인증번호 만료 또는 존재하지 않음");
+    return false;
+  }
+
+  if (storedValue === authNumber) {
+    await redisClient.del(`auth:${email}`); // 인증 성공 시 삭제
+    console.log("일치합니다");
+    return true;
+  }
+
+  console.log("불일치합니다");
+  return false;
 };

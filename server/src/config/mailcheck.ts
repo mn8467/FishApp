@@ -10,8 +10,6 @@ console.log("NAVER_USER:", process.env.NAVER_USER);
 console.log("NAVER_PASS:", process.env.NAVER_PASS ? "******" : "NOT FOUND");
 
 export const transporter: Transporter = nodemailer.createTransport({
-
-  service: "naver",
   host: "smtp.naver.com", // SMTP 서버명
   port: 465,              // SMTP 포트
   secure: true,           // TLS 보안 연결 (465 포트에서는 true)

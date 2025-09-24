@@ -1,7 +1,8 @@
 import express, { Request, Response } from "express";
 import {UserRequestDTO, UserResponseDTO } from "../dto/user-dto"
-import { registerUser,sendAuthNumber,checkThrottle } from "../service/user-service";
+import { registerUser,sendAuthNumber,checkThrottle,checkAuthNumber } from "../service/user-service";
 import {transporter} from "../config/mailcheck";
+import { request } from "http";
 
 // 아래 코드 설명  {P},{ResBody},{ReqBody}, {ReqQuery} ==>요건 여기선 없음
 // req: Request< {} ,    {}   , UserDTO>  설명
@@ -28,10 +29,33 @@ export const createUser = async (
   }
 };
 
+export const confirmNumber = async (req: Request, res: Response) => {
+  const { authNumber, email } = req.body;
 
-// 메일 인증
+
+  // console.log("받은 정보확인", email, authNumber); 2025/09/24 잘 되므로 주석처리함
+
+  const allowed = await checkAuthNumber(authNumber,email); // 순서 주의 + await 추가
+
+  if (!allowed) {
+    return res.status(400).json({
+      success: false,
+      code: "INVALID_CODE",
+      message: "인증번호가 일치하지 않거나 만료되었습니다.",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "인증이 완료되었습니다.",
+  });
+};
+
+// 인증 메일 발송
 export const mailAuth = async (req: Request, res: Response) => {
  const { email } = req.body;
+
+ console.log('받은 이메일 :',email)
 
   // 1) 입력 검증
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) {

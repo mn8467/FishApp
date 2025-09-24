@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createUser, mailAuth } from "../controller/user-controller";
+import { createUser, mailAuth,confirmNumber } from "../controller/user-controller";
 
 const router = Router();
 
@@ -8,5 +8,8 @@ router.post("/", createUser);
 
 //메일 인증 발송 라우팅
 router.post("/mailAuth", mailAuth);
+
+//메일 인증 확인 라우팅
+router.post("/checkAuthNum", confirmNumber)
 
 export default router;
