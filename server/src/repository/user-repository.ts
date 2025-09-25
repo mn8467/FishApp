@@ -1,6 +1,4 @@
-import express , { Request, Response }  from 'express';
-import { UserRequestDTO } from '../dto/user-dto';
-import { toUserRow, toUserEntity } from '../mapper/user-mapper';
+
 import { UserRow } from '../dto/user-dto';
 import pool from "../db"
 

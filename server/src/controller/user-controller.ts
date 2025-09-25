@@ -1,22 +1,20 @@
 import express, { Request, Response } from "express";
+
 import {UserRequestDTO, UserResponseDTO } from "../dto/user-dto"
 import { registerUser,sendAuthNumber,checkThrottle,checkAuthNumber } from "../service/user-service";
 import {transporter} from "../config/mailcheck";
 import { request } from "http";
 
 // 아래 코드 설명  {P},{ResBody},{ReqBody}, {ReqQuery} ==>요건 여기선 없음
-// req: Request< {} ,    {}   , UserDTO>  설명
+// req: Request< {} ,    {}   , UserRequestDTO>  설명
 
 // P = {} → URL 파라미터 없음 (/users/:id 같은 거 없다는 뜻)
 // ResBody = {} → 응답 구조는 따로 지정 안 함
-// ReqBody = UserDTO → req.body는 반드시 UserDTO 구조여야 함
+// ReqBody = UserRequestDTO → req.body는 반드시 UserRequestDTO 구조여야 함
 // ReqQuery = 기본값 → 쿼리스트링 지정 안 함
 
 // 회원가입
-export const createUser = async (
-  req: Request<{}, {}, UserRequestDTO>,
-  res: Response
-): Promise<void> => {
+export const createUser = async (req: Request<{}, {}, UserRequestDTO>, res: Response): Promise<void> => {
   try {
     const { userName, nickname, password, email } = req.body;
 
