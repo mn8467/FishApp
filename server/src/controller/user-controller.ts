@@ -33,7 +33,7 @@ export const confirmNumber = async (req: Request, res: Response) => {
   const { authNumber, email } = req.body;
 
 
-  // console.log("받은 정보확인", email, authNumber); 2025/09/24 잘 되므로 주석처리함
+   console.log("받은 정보확인", email, authNumber); 
 
   const allowed = await checkAuthNumber(authNumber,email); // 순서 주의 + await 추가
 
