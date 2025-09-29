@@ -10,12 +10,22 @@ export async function saveToken(key: string, value: string) {
   }
 }
 
+export async function getUserId(key:string) {
+  try{
+    const userId = await SecureStore.getItemAsync("userId");
+    return userId
+  }catch(err){
+    console.error(`${key} 불러오기 실패:`, err);
+    return null;
+  }
+}
+
 //토큰 불러오기
 export async function getToken(key: string) {
   try {
-    const userId = await SecureStore.getItemAsync("userId");
+    const accessToken = await SecureStore.getItemAsync("accessToken");
 
-    return userId;
+    return accessToken;
   } catch (err) {
     console.error(`${key} 불러오기 실패:`, err);
     return null;

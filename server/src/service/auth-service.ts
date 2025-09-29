@@ -10,6 +10,25 @@ export async function validateUserByUserId(user_id:number) {
   return user; // 성공 시 user 반환
 }
 
+export async function delRefreshToken(user_id: string): Promise<boolean> {
+  try {
+    const result = await redisClient.del(`refresh:${user_id}`);
+    if (result === 1) {
+      console.log(`✅ Refresh Token 삭제 완료: refresh:${user_id}`);
+      return true;
+    } else {
+      console.warn(`⚠️ 삭제할 Refresh Token이 없음: refresh:${user_id}`);
+      return false;
+    }
+  } catch (error) {
+    console.error("❌ Refresh Token 삭제 중 오류:", error);
+    return false;
+  } finally {
+    console.log(`🧹 delRefreshToken 함수 실행 완료 (user_id: ${user_id})`);
+  }
+}
+
+
 
 export async function authenticateUserByEmail(user:LoginRequestDTO) {
 
@@ -58,3 +77,4 @@ export async function issueTokens(user: LoginResponseDTO) {
 
   return { accessToken, refreshToken };
 }
+

@@ -2,6 +2,8 @@ import { LoginRequestDTO,LoginResponseDTO } from "../dto/auth-dto";
 import express, { Request, Response,NextFunction  } from "express";
 import passport from "passport";
 import { issueTokens } from "../service/auth-service";
+import { delRefreshToken } from "../service/auth-service";
+
 
 export const logoutUser = ( req:any, res:any, next:NextFunction) => {
 
@@ -44,4 +46,33 @@ export const authenticateUser = (
       }
     }
   )(req, res, next);
+};
+
+export const authLogout = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+
+    const { userId } = req.body;
+    console.log(userId)
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "userId 필요" });
+    }
+
+    // ✅ Redis에서 Refresh Token 삭제
+    const deleted = await delRefreshToken(userId);
+
+    if (deleted) {
+      return res.status(200).json({
+        success: true,
+        message: "로그아웃 완료 (Refresh Token 삭제됨)",
+      });
+    } else {
+      return res.status(404).json({
+        success: false,
+        message: "삭제할 Refresh Token이 없습니다.",
+      });
+    }
+  } catch (err) {
+    console.error("로그아웃 중 오류:", err);
+    return res.status(500).json({ success: false, message: "로그아웃 실패" });
+  }
 };
