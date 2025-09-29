@@ -30,7 +30,7 @@ app.get("/api/home", (req: Request, res: Response) => {
 
 //user 경로 라우터
 app.use('/api/users',userRouter)
-app.use('/api/auth',loginRouter)
+app.use('/api/auth',loginRouter) // 요청시 userId, access token 발급
 
 //jwt 테스트 코드
 app.get('/api/protected',
