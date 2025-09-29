@@ -50,6 +50,9 @@ export async function issueTokens(user: LoginResponseDTO) {
     { expiresIn: "10m" }
   );
 
+    // 기존 refresh 토큰 무효화 (rotation 대비)
+  await redisClient.del(`refresh:${user.userId}`);
+
   // Redis 저장 (만료 10분)
   await redisClient.set(`refresh:${user.userId}`, refreshToken, { EX: 60 * 10 });
 

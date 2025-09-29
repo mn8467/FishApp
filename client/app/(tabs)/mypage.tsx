@@ -1,12 +1,31 @@
 import { Link } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { View, StyleSheet } from "react-native";
-
+import { getToken } from "@/utils/secureStore";
+import { useState,useEffect } from "react";
 export default function MypageScreen() {
+
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchToken = async () => {
+      const token = await getToken("accessToken");
+      setAccessToken(token);
+    };
+
+    fetchToken();
+  }, []);
+
   return (
     <View style={styles.container}>
       <ThemedText type="title">
         <Link href="/signup">회원가입 이동</Link>
+      </ThemedText>
+      
+      <ThemedText>내 Access Token: {accessToken ?? "없음"}</ThemedText>
+      
+      <ThemedText type="title">
+        <Link href="/Login">로그인 페이지 이동</Link>
       </ThemedText>
     </View>
   );

@@ -4,6 +4,7 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 
 export default function Signup() {
+    const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
   const router = useRouter();
   const [form, setForm] = useState({
     userName: "",
@@ -34,7 +35,7 @@ export default function Signup() {
   // 이메일 인증 요청
   const handleSendAuth = async () => {
     try {
-      const res = await axios.post("http://localhost:8080/api/users/mailAuth", {
+      const res = await axios.post(`http://${CURRENT_HOST}:8080/api/users/mailAuth`, {
         email: form.email,
       });
       Alert.alert("인증 메일 발송", res.data?.message || "메일을 확인하세요.");
@@ -49,7 +50,7 @@ export default function Signup() {
   const handleVerifyAuth = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:8080/api/users/checkAuthNum",
+        `http://${CURRENT_HOST}:8080/api/users/checkAuthNum`,
         {
           email: form.email,
           authNumber,
@@ -66,7 +67,7 @@ export default function Signup() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:8080/api/users", form);
+      const res = await axios.post(`http://${CURRENT_HOST}:8080/api/users`, form);
       if (res.status === 200 || res.status === 201) {
         setForm({ userName: "", nickname: "", password: "", email: "" });
         setAuthNumber("");
@@ -163,7 +164,7 @@ export default function Signup() {
         onPress={handleSubmit}
         disabled={loading}
       />
-    </View>
+    </View> 
   );
 }
 

@@ -3,14 +3,19 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import axios from "axios";
 import { ThemedText } from "@/components/themed-text";
 
+
 export default function HomeScreen() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
+
+console.log("환경변수 왜 안가져와!!",CURRENT_HOST)
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/api/home", {
+        const response = await axios.get(`http://${CURRENT_HOST}:8080/api/home`, {
           withCredentials: true,
         });
         setData(response.data);
