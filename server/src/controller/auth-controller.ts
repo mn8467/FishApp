@@ -3,11 +3,8 @@ import express, { Request, Response,NextFunction  } from "express";
 import passport from "passport";
 import { issueTokens } from "../service/auth-service";
 import { delRefreshToken } from "../service/auth-service";
+import jwt from "jsonwebtoken";
 
-
-export const logoutUser = ( req:any, res:any, next:NextFunction) => {
-
-}
 
 export const authenticateUser = (
   req: Request<{}, {}, LoginRequestDTO>,
@@ -48,31 +45,57 @@ export const authenticateUser = (
   )(req, res, next);
 };
 
-export const authLogout = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-
-    const { userId } = req.body;
-    console.log(userId)
-    if (!userId) {
-      return res.status(400).json({ success: false, message: "userId 필요" });
-    }
-
-    // ✅ Redis에서 Refresh Token 삭제
-    const deleted = await delRefreshToken(userId);
-
-    if (deleted) {
-      return res.status(200).json({
-        success: true,
-        message: "로그아웃 완료 (Refresh Token 삭제됨)",
-      });
-    } else {
-      return res.status(404).json({
+  export const authLogout = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userId } = req.body;
+      console.log("로그아웃 요청 userId:", userId);
+    
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          code: "USER_ID_REQUIRED", // 에러 식별 코드
+          message: "userId 필요",
+        });
+      }
+    
+      // ✅ Redis에서 Refresh Token 삭제
+      const deleted = await delRefreshToken(userId);
+    
+      if (deleted) {
+        return res.status(200).json({
+          success: true,
+          code: "LOGOUT_SUCCESS",
+          message: "로그아웃 완료 (Refresh Token 삭제됨)",
+        });
+      } else {
+        return res.status(404).json({
+          success: false,
+          code: "REFRESH_TOKEN_NOT_FOUND", // ✅ 프론트는 이 코드로 분기
+          message: "삭제할 Refresh Token이 없습니다.",
+        });
+      }
+    } catch (err) {
+      console.error("로그아웃 중 오류:", err);
+      return res.status(500).json({
         success: false,
-        message: "삭제할 Refresh Token이 없습니다.",
+        code: "LOGOUT_ERROR",
+        message: "로그아웃 실패",
       });
     }
-  } catch (err) {
-    console.error("로그아웃 중 오류:", err);
-    return res.status(500).json({ success: false, message: "로그아웃 실패" });
+  };
+
+export const verifyAuthToken = (req:Request, res:Response, next:NextFunction) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "토큰 없음" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded;
+    next();
+  } catch (err: any) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "토큰 만료됨" });
+    }
+    return res.status(401).json({ message: "유효하지 않은 토큰" });
   }
 };
