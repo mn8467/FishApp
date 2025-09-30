@@ -26,9 +26,9 @@ export default function MypageScreen() {
   const moveProfile = async () => {
   try {
       // ✅ 인터셉터(authUrls) 조건 충족 → Access Token 자동 헤더 추가됨
+      console.log("경로타나 확인: front")
+      const res = await api.get("auth/verify"); // 절대경로 추가해줬기 때문에 이렇게 맨앞 슬래시 제외 2025 -09 -30
       
-      const res = await api.get(`${CURRENT_HOST}:8080/api/auth/verify`);
-      console.log("경로타나 확인: front",res)
       if (res.data.success) {
         // 👉 프로필 정보가 잘 불려왔다면 화면 이동
         router.push("/mypage/profile");
@@ -76,7 +76,7 @@ export default function MypageScreen() {
       case "USER_ID_REQUIRED":
         Alert.alert("🚨", "userId가 필요합니다.");
         break;
-        
+
       default:
         Alert.alert("❌", message || "알 수 없는 오류 발생");
     }

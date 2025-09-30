@@ -49,7 +49,7 @@ export const authenticateUser = (
     try {
       const { userId } = req.body;
       console.log("로그아웃 요청 userId:", userId);
-    
+
       if (!userId) {
         return res.status(400).json({
           success: false,
@@ -57,10 +57,10 @@ export const authenticateUser = (
           message: "userId 필요",
         });
       }
-    
+
       // ✅ Redis에서 Refresh Token 삭제
       const deleted = await delRefreshToken(userId);
-    
+
       if (deleted) {
         return res.status(200).json({
           success: true,
@@ -84,18 +84,37 @@ export const authenticateUser = (
     }
   };
 
-export const verifyAuthToken = (req:Request, res:Response, next:NextFunction) => {
+export const verifyAuthToken = (req: Request, res: Response) => {
+  console.log("경로 잘 들어가짐??");
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "토큰 없음" });
+  console.log("토큰 뜨나?", token);
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      code: "NO_TOKEN",
+      message: "토큰 없음",
+    });
+  }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    req.user = decoded;
-    next();
+    return res.status(200).json({
+      success: true,
+      code: "TOKEN_VALID",
+      message: "토큰 검증 성공"
+    });
   } catch (err: any) {
     if (err.name === "TokenExpiredError") {
-      return res.status(401).json({ message: "토큰 만료됨" });
+      return res.status(401).json({
+        success: false,
+        code: "TOKEN_EXPIRED",
+        message: "토큰 만료됨",
+      });
     }
-    return res.status(401).json({ message: "유효하지 않은 토큰" });
+    return res.status(401).json({
+      success: false,
+      code: "INVALID_TOKEN",
+      message: "유효하지 않은 토큰",
+    });
   }
 };

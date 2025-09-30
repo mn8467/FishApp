@@ -9,17 +9,20 @@ const api = axios.create({
 });
 
 // ✅ 요청 인터셉터 → Access Token만 붙임
-const authUrls = ["/auth/verify"]; // 검증에만 토큰 붙임
+const authUrls = ["auth/verify"]; // 검증에만 토큰 붙임 , 여기선 슬래시 붙여줌
 api.interceptors.request.use(async (config) => {
-  
-  const url = config.url ?? ""; // undefined면 빈 문자열
-  if (authUrls.some((authUrl) => url.includes(authUrl))) {
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    console.log("토큰 찍히나 확인",accessToken)
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
+  const url = config.url ?? "";
+  console.log("인터셉터 URL:", url);
+
+  const accessToken = await SecureStore.getItemAsync("accessToken");
+  console.log("SecureStore에서 읽은 토큰:", accessToken);
+
+  if (accessToken) {
+    (config.headers as any).authorization = `Bearer ${accessToken}`;
   }
+
+  console.log("최종 요청 헤더:", config.headers);  // ✅ 여기에 찍으면 됨
+
   return config;
 });
 
@@ -34,18 +37,17 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync("refreshToken");
         const userId = await SecureStore.getItemAsync("userId");
 
-        if (!refreshToken || !userId) {
-          throw new Error("저장된 Refresh Token 또는 userId 없음");
+        if (!userId) {
+          
+          throw new Error("저장된 userId 없음");
         }
 
         // Refresh API 호출 → userId는 이때만 헤더에 붙여 보냄
         const refreshRes = await axios.post(
           `http://${process.env.EXPO_PUBLIC_CURRENT_HOST}:8080/api/auth/refresh`,
-          { refreshToken }, // body에는 refreshToken
-          { headers: { "X-User-Id": userId } } // 헤더에 userId
+          { userId }, // body에는 refreshToken
         );
 
         if (refreshRes.data.success) {
