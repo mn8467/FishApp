@@ -10,14 +10,14 @@ import api from "@/api/axiosInstance"; // ✅ 인터셉터 적용된 axios 인�
 
 export default function MypageScreen() {
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
+const [accessToken, setAccessToken] = useState<string | null>(null);
+const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
   
 
   useEffect(() => {
     const fetchToken = async () => {
-      const token = await getUserId("userId");
-      setUserId(token);
+      const token = await SecureStore.getItemAsync("accessToken"); 
+      setAccessToken(token);
     };
 
     fetchToken();
@@ -44,49 +44,46 @@ export default function MypageScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      const res = await axios.post(
-        `http://${CURRENT_HOST}:8080/api/auth/logout`,
-        { userId },
-        { withCredentials: true }
-      );
-      
-      
-      if (res.data.success) {
-        // ✅ 서버 로그아웃 성공
-        await SecureStore.deleteItemAsync("accessToken");
-        await SecureStore.deleteItemAsync("userId");
-        setUserId(null);
-      
-        Alert.alert("로그아웃 완료!", undefined, [{ text: "확인" }]);
-      }
-    } catch (err: any) {
-  if (err.response) {
-    const { code, message } = err.response.data;
+  try {
+    // ✅ api 인스턴스를 사용 → Access Token 자동 헤더 포함
+    const res = await api.post("auth/logout");
 
-    console.log("코드 잘 가져오나?",code)
-    switch (code) {
-      case "REFRESH_TOKEN_NOT_FOUND":
-        await SecureStore.deleteItemAsync("accessToken");
-        await SecureStore.deleteItemAsync("userId");
-        setUserId(null);
-        Alert.alert("세션 만료", "이미 로그아웃된 상태입니다.");
-        break;
+    if (res.data.success) {
+      // ✅ 서버 로그아웃 성공 → Access Token 삭제
+      await SecureStore.deleteItemAsync("accessToken");
+      setAccessToken(null); // 화면 상태만 초기화
 
-      case "USER_ID_REQUIRED":
-        Alert.alert("🚨", "userId가 필요합니다.");
-        break;
-
-      default:
-        Alert.alert("❌", message || "알 수 없는 오류 발생");
+      Alert.alert("로그아웃 완료!", undefined, [{ text: "확인" }]);
     }
-  } else {
-    console.error("네트워크 오류:", err);
-    Alert.alert("❌", "네트워크 오류 또는 서버 에러 발생");
+  } catch (err: any) {
+    if (err.response) {
+      const { code, message } = err.response.data;
+      console.log("로그아웃 실패 코드:", code);
+
+      switch (code) {
+        case "REFRESH_TOKEN_NOT_FOUND":
+          await SecureStore.deleteItemAsync("accessToken");
+          setAccessToken(null);
+          Alert.alert("세션 만료", "이미 로그아웃된 상태입니다.");
+          break;
+
+        case "INVALID_TOKEN":
+          await SecureStore.deleteItemAsync("accessToken");
+          setAccessToken(null);
+          Alert.alert("🚨", "토큰이 유효하지 않습니다. 다시 로그인해주세요.");
+          break;
+
+        default:
+          Alert.alert("❌", message || "알 수 없는 오류 발생");
       }
+    } else {
+      await SecureStore.deleteItemAsync("accessToken");
+      setAccessToken(null);
+      console.error("네트워크 오류:", err);
+      Alert.alert("❌", "네트워크 오류 또는 서버 에러 발생");
     }
   }
-
+};
 
   const moveLoginPage = async() => {
     router.push("/login")
@@ -103,10 +100,10 @@ export default function MypageScreen() {
     </TouchableOpacity>
       
 
-      <ThemedText>내 Access Token: {userId ?? "없음"}</ThemedText>
+      <ThemedText>내 Access Token: {accessToken ?"있음" : "없음"}</ThemedText>
       
       {/* ✅ 로그아웃 버튼 */}
-      {userId ? (
+      {accessToken ? (
                             // 로그인 상태일 때 로그아웃 버튼을 보여줍니다.
                                   <TouchableOpacity style={styles.logoutbutton} onPress={handleLogout}>
                                     <ThemedText style={styles.buttonText}>로그아웃</ThemedText>

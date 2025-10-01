@@ -46,14 +46,11 @@ export default function Login() {
 
       if (res.data.success) {
         const accessToken = res.data.accessToken;
-        const userId = res.data.userId; // ✅ 서버에서 바로 내려옴
 
         console.log("Access Token:", accessToken);
 
         // ✅ SecureStore에 저장
         await saveToSecureStore("accessToken", accessToken);
-        await saveToSecureStore("userId", userId.toString());
-
 
         Alert.alert("로그인 성공!", undefined, [
           {

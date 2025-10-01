@@ -1,4 +1,5 @@
 import { LoginRequestDTO, LoginResponseDTO,authUserRow  } from "../dto/auth-dto";
+import { MappingError } from "../utils/error";
 
 export const AuthMapper = {
   // JS → DB 변환 (camelCase → snake_case)
@@ -10,7 +11,8 @@ export const AuthMapper = {
   },
 
   // DB → JS 변환 (snake_case → camelCase)
-  toEntity(row: authUserRow) {
+  toEntity(row: authUserRow | null | undefined) {
+    if (!row) throw new MappingError("authUserRow is null/undefined");
     return {
       userId: row.user_id,
       userName: row.user_name,

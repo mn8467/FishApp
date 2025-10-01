@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 
 export default function ProfileScreen() {
   const router = useRouter();
-
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>프로필 페이지</Text>

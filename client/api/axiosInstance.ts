@@ -9,7 +9,6 @@ const api = axios.create({
 });
 
 // ✅ 요청 인터셉터 → Access Token만 붙임
-const authUrls = ["auth/verify"]; // 검증에만 토큰 붙임 , 여기선 슬래시 붙여줌
 api.interceptors.request.use(async (config) => {
   const url = config.url ?? "";
   console.log("인터셉터 URL:", url);
@@ -27,47 +26,18 @@ api.interceptors.request.use(async (config) => {
 });
 
 
-// ✅ 응답 인터셉터 → 401일 때만 userId + refreshToken 같이 전송
+// ✅ 응답 인터셉터 → 401일 때만 refreshToken 같이 전송
 api.interceptors.response.use(
-  (res) => res,
-  async (err) => {
-    const originalRequest = err.config;
-
-    if (err.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const userId = await SecureStore.getItemAsync("userId");
-
-        if (!userId) {
-          
-          throw new Error("저장된 userId 없음");
-        }
-
-        // Refresh API 호출 → userId는 이때만 헤더에 붙여 보냄
-        const refreshRes = await axios.post(
-          `http://${process.env.EXPO_PUBLIC_CURRENT_HOST}:8080/api/auth/refresh`,
-          { userId }, // body에는 refreshToken
-        );
-
-        if (refreshRes.data.success) {
-          const newAccessToken = refreshRes.data.accessToken;
-
-          // 새 Access Token 저장
-          await SecureStore.setItemAsync("accessToken", newAccessToken);
-
-          // 원래 요청 다시 실행 (새 토큰으로 교체)
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return api(originalRequest);
-        }
-      } catch (refreshErr) {
-        console.error("토큰 재발급 실패:", refreshErr);
-        // ❌ 재발급 실패 → 로그인 페이지 이동 시키는 로직 넣어도 됨
-      }
+  async (res) => {
+    const newAccessToken = res.headers["x-new-access-token"];
+    if (newAccessToken) {
+      await SecureStore.setItemAsync("accessToken", newAccessToken);
+      console.log("🔄 새 Access Token 저장됨:", newAccessToken);
     }
-
-    return Promise.reject(err);
-  }
+      console.log("서버 응답 메시지:", res.data);
+    return res;
+  },
+  (err) => Promise.reject(err)
 );
 
 export default api;

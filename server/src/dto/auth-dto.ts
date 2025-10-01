@@ -28,3 +28,12 @@ export interface authUserRow {
   user_role: string;
   user_status: string;
 }
+
+export interface TokenPayload {
+  userId: string;
+  userName: string;
+  userRole: string;
+  userStatus: string;
+  exp: number;
+  iat: number;
+}
