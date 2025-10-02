@@ -10,4 +10,6 @@ router.post("/logout", authLogout);
 //토큰 검증 로직
 router.get("/verify", verifyAuthToken);
 
+
+
 export default router;
