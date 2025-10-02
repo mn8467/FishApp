@@ -77,6 +77,7 @@ export default function Login() {
       <TextInput
         style={styles.input}
         placeholder="아이디"
+        placeholderTextColor="red"
         value={form.userName}
         onChangeText={(text) => handleChange("userName", text)}
         autoCapitalize="none"

@@ -106,6 +106,7 @@ export default function Signup() {
 
       <TextInput
         placeholder="아이디"
+        placeholderTextColor="red"
         value={form.userName}
         onChangeText={(value) => handleChange("userName", value)}
         style={[styles.input]}
@@ -113,6 +114,7 @@ export default function Signup() {
 
       <TextInput
         placeholder="닉네임"
+        placeholderTextColor="red"
         value={form.nickname}
         onChangeText={(value) => handleChange("nickname", value)}
         style={[styles.input]}
@@ -122,6 +124,7 @@ export default function Signup() {
       <View style={styles.row}>
         <TextInput
           placeholder="이메일"
+          placeholderTextColor="red"
           value={form.email}
           onChangeText={(value) => handleChange("email", value)}
           style={[styles.input, { flex: 1 }]}
@@ -140,6 +143,7 @@ export default function Signup() {
           <>
             <TextInput
               placeholder="인증번호 입력"
+              placeholderTextColor="red"
               value={authNumber}
               onChangeText={(value) => setAuthNumber(value)}
               style={[styles.input, { flex: 1 }]}
@@ -153,6 +157,7 @@ export default function Signup() {
 
       <TextInput
         placeholder="비밀번호"
+        placeholderTextColor="red"
         secureTextEntry
         value={form.password}
         onChangeText={(value) => handleChange("password", value)}

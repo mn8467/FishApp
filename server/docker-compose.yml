@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: fishapp-backendd
+    ports:
+      - "8080:8080"              # 호스트:컨테이너 포트 매핑
+    env_file:
+      - .env                     # ✅ .env 파일을 컨테이너 환경변수로 주입
+    volumes:
+      - .:/server                # 로컬 VSCode ↔ 컨테이너 동기화
+      - /server/node_modules     # node_modules는 컨테이너 안에서만 유지
+    depends_on:
+      - redis                    # ✅ Redis만 의존
+
+  redis:
+    image: redis:7-alpine
+    container_name: fishapp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  redisdata:
