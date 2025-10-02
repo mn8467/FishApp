@@ -1,7 +1,7 @@
 import { Pool } from "pg";
 import dotenv from "dotenv";
 
-dotenv.config({ path: "../.env" });
+dotenv.config({ path: ".env" });
 
 // 환경변수 타입 정의 (선택적으로 작성하면 안전함)
 interface DBEnv {

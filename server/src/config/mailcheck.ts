@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import path from "path";
 // 환경변수 로드 (.env 경로 맞게 수정)
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 
 console.log("NAVER_USER:", process.env.NAVER_USER);
