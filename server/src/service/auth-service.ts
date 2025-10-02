@@ -101,10 +101,10 @@ export async function issueTokens(user: LoginResponseDTO) {
     { expiresIn: "1m" }
   );
 
-  // Refresh Token (10분)
+  // Refresh Token (10분) 수정
   const refreshToken = jwt.sign(
     { userId: user.userId },
-    process.env.JWT_SECRET as string,
+    process.env.JWT_SECRET as string, 
     { expiresIn: "10m" }
   );
 

@@ -13,7 +13,7 @@ import { request } from "http";
 // ReqBody = UserRequestDTO → req.body는 반드시 UserRequestDTO 구조여야 함
 // ReqQuery = 기본값 → 쿼리스트링 지정 안 함
 
-// 회원가입
+// 회원가입 되는건가
 export const createUser = async (req: Request<{}, {}, UserRequestDTO>, res: Response): Promise<void> => {
   try {
     const { userName, nickname, password, email } = req.body;
