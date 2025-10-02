@@ -3,9 +3,11 @@ import { authenticateUser,authLogout, verifyAuthToken} from "../controller/auth-
 
 const router = Router();
 
-// 회원가입 라우팅
+//로그인
 router.post("/login", authenticateUser);
+//로그아웃
 router.post("/logout", authLogout);
+//토큰 검증 로직
 router.get("/verify", verifyAuthToken);
 
 export default router;
