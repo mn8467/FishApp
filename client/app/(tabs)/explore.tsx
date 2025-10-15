@@ -32,6 +32,10 @@ export default function TabTwoScreen() {
             <ThemedText type="title">
               <Link href="/fishdetail">상세 페이지로</Link>
             </ThemedText>
+
+            <ThemedText type="title">
+              <Link href="/home">홈 페이지로</Link>
+            </ThemedText>
       
     </ParallaxScrollView>
   );

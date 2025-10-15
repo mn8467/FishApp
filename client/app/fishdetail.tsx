@@ -9,6 +9,8 @@ import { styles } from "../components/fishdetailstyle";
 export default function FishDetailScreen() {
   const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
 
+  
+
   return (
     <ScrollView style={styles.container}>
       {/* 상단 이미지 + 좋아요 버튼 */}

@@ -5,8 +5,6 @@ import path from "path";
 // 환경변수 로드 (.env 경로 맞게 수정)
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-//git test
-
 console.log("NAVER_USER:", process.env.NAVER_USER);
 console.log("NAVER_PASS:", process.env.NAVER_PASS ? "******" : "NOT FOUND");
 
