@@ -28,7 +28,6 @@ export default function TabTwoScreen() {
       </ThemedView>
       <ThemedText>아오 복잡해</ThemedText>
 
-
             <ThemedText type="title">
               <Link href="/fishdetail">상세 페이지로</Link>
             </ThemedText>
