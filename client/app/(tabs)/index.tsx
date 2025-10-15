@@ -40,8 +40,8 @@ console.log("환경변수 왜 안가져와!!",CURRENT_HOST)
 
   return (
     <View style={styles.container}>
-      <ThemedText type="title">응답:</ThemedText>
-      <ThemedText>{JSON.stringify(data)}</ThemedText>
+      <ThemedText type="title">연결확인:</ThemedText>
+      <ThemedText>{JSON.stringify(data)}</ThemedText>      
     </View>
   );
 }
