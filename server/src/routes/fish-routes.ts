@@ -1,9 +1,8 @@
-import { Router } from "express";
-import { findAllFish } from "../controller/fish-controller";
-const router = Router();
+    import { Router } from "express";
+    import { findAllFish, getByFishId } from "../controller/fish-controller";
+    const router = Router();
 
 
-//메일 인증 확인 라우팅
-router.get("/data", findAllFish)
-
-export default router;
+    router.get("/data", findAllFish)
+    router.get("/:fishId",getByFishId)
+    export default router;
