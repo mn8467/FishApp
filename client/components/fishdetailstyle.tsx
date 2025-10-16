@@ -58,64 +58,90 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: 10,
   },
-  statsContainer: {
-    backgroundColor: "#fff", 
-    marginHorizontal: 16,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+statsContainer: {
+  backgroundColor: "#fff",
+  marginHorizontal: 16,
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: "#000",
+  shadowOpacity: 0.1,
+  shadowRadius: 3,
+  elevation: 2,
+},
+statRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginVertical: 6,
+},
+statLabel: {
+  width: 88,
+  fontWeight: "600",
+  flexShrink: 0,
+},
+statBarBackground: {
+  flex: 1,
+  height: 12,
+  backgroundColor: "#eee",
+  borderRadius: 6,
+  marginHorizontal: 8,
+  overflow: "hidden",
+},
+statBar: {
+  height: "100%",
+  backgroundColor: "#7db3ff",
+  borderRadius: 6,
+},
+statValue: {
+  width: 48,
+  minWidth: 44,
+  textAlign: "right",
+  fontVariant: ["tabular-nums"],
+  flexShrink: 0,
+},
+section: {
+  backgroundColor: "#fff",
+  marginHorizontal: 16,
+  borderRadius: 12,
+  padding: 16,
+  marginTop: 20,
+  shadowColor: "#000",
+  shadowOpacity: 0.1,
+  shadowRadius: 3,
+  elevation: 2,
+},
+sectionTitle: {
+  fontSize: 18,
+  fontWeight: "bold",
+  marginBottom: 8,
+},
+description: {
+  fontSize: 14,
+  color: "#444",
+},
+comment: {
+  fontSize: 14,
+  color: "#333",
+  marginVertical: 4,
+},
+/* ── 추가된 스타일 ───────────────────────────────────── */
+  labelBox: {                // [ADDED] 라벨+? 아이콘을 감싸는 박스
+    width: 88,               // statLabel과 동일 값 유지
+    position: "relative",
+    paddingRight: 18,        // 아이콘 자리 확보
+    justifyContent: "center",
   },
-  statRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 4,
+  helpIcon: {                // [ADDED] ? 아이콘 절대 위치
+    position: "absolute",
+    right: 0,
+    top: "50%",
+    marginTop: -8,           // 아이콘 높이(16)의 절반
   },
-  statLabel: {
-    width: 80,
-    fontWeight: "600",
+  statDesc: {                // [ADDED] hpDesc 등 설명 텍스트
+    marginLeft: 88,          // 라벨 폭만큼 들여쓰기
+    marginTop: 4,
+    marginRight: 8,
+    fontSize: 12,
+    color: "#666",
+    lineHeight: 18,
   },
-  statBarBackground: {
-    flex: 1,
-    height: 10,
-    backgroundColor: "#eee",
-    borderRadius: 5,
-    marginHorizontal: 8,
-  },
-  statBar: {
-    height: 10,
-    backgroundColor: "#7db3ff",
-    borderRadius: 5,
-  },
-  statValue: {
-    width: 30,
-    textAlign: "right",
-  },
-  section: {
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: "#444",
-  },
-  comment: {
-    fontSize: 14,
-    color: "#333",
-    marginVertical: 4,
-  },
-});
+})

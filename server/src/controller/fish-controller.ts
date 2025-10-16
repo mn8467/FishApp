@@ -16,7 +16,7 @@ export const getByFishId = async(req:Request,res:Response,next:NextFunction) => 
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ message: "fishId must be a positive integer" });
     }
-    
+
     const fish = await getFishData(id);
     
     if (!fish) {
