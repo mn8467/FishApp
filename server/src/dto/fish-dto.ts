@@ -23,6 +23,7 @@ export interface FishResponseDTO{
     updatedAt: Date | string;
 }
 
+//Sever -> Client 로 보낼때 틀
 export interface FishAllDataDTO{
    fishId:number
    fishName:string

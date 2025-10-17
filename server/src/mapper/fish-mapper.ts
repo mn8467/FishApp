@@ -25,7 +25,7 @@ export const FishMapper = {
        updatedAt: row.updatedAt,
      }
    },
-  // DB → JS 변환 (snake_case → camelCase)
+  // DB → JS 변환 (snake_case → camelCase) ==> 다건 조회용
  toEntityList(rows: Array<FishResponseDTO | null | undefined>): FishRequestDTO[] {
     if (!rows || rows.length === 0) return [];
 

@@ -4,6 +4,7 @@ import type{ FishAllDataDTO, FishResponseDTO } from "../dto/fish-dto";
 
 
 //f,fs를 변수명으로 쓰는 이유 : 읽자마자 어떤 테이블인지 직관적.
+// 선택한 fish 만 찾는 단건 조회
 export async function findByFishId(fish_id:number): Promise<FishAllDataDTO> {
   const sql = `
                 SELECT
@@ -38,6 +39,7 @@ export async function findByFishId(fish_id:number): Promise<FishAllDataDTO> {
   }
 }
 
+//모든 Fish 조회 (다건조회)
 export async function listFish(): Promise<FishResponseDTO[]> {
   const sql = `
     SELECT
