@@ -1,7 +1,23 @@
 import pool from "../db";
 import { NotFoundError,DbError } from "../utils/error";  
-import type{ FishAllDataDTO, FishResponseDTO } from "../dto/fish-dto";
+import type{ FishAllDataDTO, FishForHomeDTO, FishResponseDTO } from "../dto/fish-dto";
 
+export async function findFishesForHome(): Promise<FishForHomeDTO[]>{
+  const sql =`
+              SELECT
+                fish_id AS "fishId",
+                fish_name AS "fishName",
+                image_url AS "imageUrl"
+              FROM fish
+              ORDER BY fish_name ASC;
+             `
+    try {
+    const { rows } = await pool.query<FishForHomeDTO>(sql);
+    return rows; // [] 가능
+  } catch (e) {
+    throw new DbError("DbError 발생", e);
+  }
+}
 
 //f,fs를 변수명으로 쓰는 이유 : 읽자마자 어떤 테이블인지 직관적.
 // 선택한 fish 만 찾는 단건 조회

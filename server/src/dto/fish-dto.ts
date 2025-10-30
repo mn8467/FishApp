@@ -1,3 +1,9 @@
+export interface FishForHomeDTO{
+    fishId:string;
+    fishName:string;
+    imageUrl: string;
+}
+
 export interface FishRequestDTO {
     fishId:number;
     fishName:string     

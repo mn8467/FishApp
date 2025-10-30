@@ -29,6 +29,7 @@ export interface authUserRow {
   user_status: string;
 }
 
+//토큰 페이로드 틀
 export interface TokenPayload {
   userId: string;
   userName: string;

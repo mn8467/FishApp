@@ -1,5 +1,15 @@
 import { Response,Request,NextFunction } from "express";
-import { getFishData, getFishList } from "../service/fish-service";
+import { getFishData, getFishList, getFishListForHome } from "../service/fish-service";
+
+
+export const getFishIdandName = async(req:Request,res:Response,next:NextFunction) => {
+  try{
+    const fishId = await getFishListForHome();
+    res.status(200).json(fishId); 
+  } catch (err){
+    next(err);
+  }
+}
 
 export const findAllFish = async (req:Request,res:Response,next:NextFunction) => {
     try {

@@ -9,7 +9,7 @@ import {
   DimensionValue,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { styles } from "../components/fishdetailstyle";
+import { styles } from "../../components/fishdetailstyle";
 import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
 
