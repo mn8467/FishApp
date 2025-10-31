@@ -1,6 +1,25 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
+
+  inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 8 } as const,
+  input: {
+    flex: 1, minHeight: 40, maxHeight: 120, paddingHorizontal: 12, paddingVertical: 10,
+    borderWidth: 1, borderColor: "#ddd", borderRadius: 10, backgroundColor: "#fff", fontSize: 14,
+  } as const,
+  sendBtn: {
+    height: 40, width: 40, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "#4BA3C3",
+  } as const,
+  commentRow: {
+    flexDirection: "row", gap: 10, padding: 10, borderWidth: 1, borderColor: "#eee", borderRadius: 12, backgroundColor: "#fafafa",
+  } as const,
+  avatar: { height: 36, width: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "#d7eef5" } as const,
+  avatarText: { fontWeight: "700", color: "#2a6f85" } as const,
+  headerRow: { flexDirection: "row", alignItems: "baseline", gap: 8 } as const,
+  nameText: { fontWeight: "700", fontSize: 13, color: "#333" } as const,
+  timeText: { fontSize: 11, color: "#999" } as const,
+  bodyText: { marginTop: 4, fontSize: 14, color: "#333", lineHeight: 20 } as const,
+
   container: {
     flex: 1,
     backgroundColor: "#f7f9fb",

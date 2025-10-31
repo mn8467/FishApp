@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+
+// 상단 import들 옆에 붙이기
 import {
   View,
   Text,
@@ -7,6 +9,10 @@ import {
   ScrollView,
   ActivityIndicator,
   DimensionValue,
+  TextInput, // 추가
+  FlatList,  // 추가
+  KeyboardAvoidingView, // 추가
+  Platform, // 추가
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../../components/fishdetailstyle";
@@ -37,6 +43,20 @@ interface Fish {
   speedDesc: string;
 }
 
+
+/** ✅ 댓글 타입(서버 응답 기준) */
+// 댓글 가져올때 사용?
+interface Comment {
+    commentId: string;
+    userId: string;
+    nickname: string;
+    fishId: string;
+    body: string;
+    isDeleted: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 const STAT_MAX = 200;
 const TOTAL_MAX = 1000;
 // [CHANGED] 라벨 영역 너비(아래 desc 들여쓰기에도 사용). 너 스타일에 맞춰 80~88로 조절 가능.
@@ -64,6 +84,12 @@ export default function FishDetailScreen() {
   const [showSpecialInfo, setShowSpecialInfo] = useState(false);
   const [showSpeedInfo, setShowSpeedInfo] = useState(false);
 
+    // ───────────────────────────── 댓글: 상태 ─────────────────────────────
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(true);
+  const [newComment, setNewComment] = useState("");
+  const [posting, setPosting] = useState(false);
+  const CURRENT_USER_ID = 1;
 
   useEffect(() => {
     const fetchFish = async () => {
@@ -80,6 +106,113 @@ export default function FishDetailScreen() {
     };
     fetchFish();
   }, [fishId]);
+
+
+// 서버 응답 → 클라이언트 Comment로 변환
+const normalizeComment = (raw: any): Comment => ({
+  commentId: String(raw.commentId),     // ID를 문자열로 강제
+  userId:    String(raw.userId),        // 문자열로 강제
+  nickname:  raw.nickname ?? "",        // null/undefined이면 빈 문자열
+  fishId:    String(raw.fishId),        // 문자열로 강제
+  body:      String(raw.body ?? ""),    // 비어 있으면 빈 문자열
+  isDeleted: Boolean(raw.isDeleted),    // 불리언으로 강제
+  createdAt: new Date(raw.createdAt),   // ISO 문자열 → Date 객체
+  updatedAt: new Date(raw.updatedAt),   // ISO 문자열 → Date 객체
+});
+
+    //고쳐야함!!!
+// 2) 댓글 목록 가져오기(useEffect)
+useEffect(() => {
+  const fetchComments = async () => {
+    if (!fishId) return;
+    try {
+      setLoadingComments(true);
+      const res = await axios.get<any[]>(`http://${CURRENT_HOST}:8080/api/comments/data/${fishId}`);
+
+      // 서버 정렬이 이미 되어 있으면 이 정렬은 생략 가능
+      const normalized = res.data.map(normalizeComment).sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      );
+
+      setComments(normalized);
+    } catch (err) {
+      console.error("💬 Error fetching comments:", err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+  fetchComments();
+}, [fishId]);
+
+// 3) 댓글 작성(낙관적 업데이트 포함)
+const handlePostComment = async () => {
+  const body = newComment.trim();
+  if (!body || !fishId) return;
+
+  setPosting(true);
+
+  // ✅ 임시 ID는 string으로, 유형을 명확히
+  const tempId = `temp-${Date.now()}`;
+
+  // ✅ 최신 Comment 타입에 맞춘 낙관적 객체
+  const optimistic: Comment = {
+    commentId: tempId,
+    userId: String(CURRENT_USER_ID),
+    nickname: "You",                 // 서버가 닉네임 돌려줄 때 교체될 값
+    fishId: String(fishId),
+    body,
+    isDeleted: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  setComments((prev) => [optimistic, ...prev]);
+  setNewComment("");
+
+  try {
+    // 서버는 생성된 댓글 전체를 반환하는 게 베스트
+    const res = await axios.post<any>(
+      `http://${CURRENT_HOST}:8080/api/fish/${fishId}/comments`,
+      { userId: CURRENT_USER_ID, body }
+    );
+
+    const serverComment = normalizeComment(res.data);
+
+    // ✅ 임시 ID를 서버 ID로 교체
+    setComments((prev) =>
+      prev.map((c) => (c.commentId === tempId ? serverComment : c))
+    );
+  } catch (err) {
+    console.error("💬 Error posting comment:", err);
+    // 롤백 + 입력 복구
+    setComments((prev) => prev.filter((c) => c.commentId !== tempId));
+    setNewComment(body);
+  } finally {
+    setPosting(false);
+  }
+};
+
+
+  /** ✅ 댓글 아이템: 아바타 이니셜 + 본문 + 시간 */
+const CommentItem = ({ item }: { item: Comment }) => {
+  const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();
+  const d = new Date(item.createdAt);
+  const ts = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  return (
+    <View style={styles.commentRow}>
+      <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.headerRow}>
+          <Text style={styles.nameText}>{item.nickname ?? `User#${item.userId}`}</Text>
+          <Text style={styles.timeText}>{ts}</Text>
+        </View>
+        <Text style={styles.bodyText}>{item.body}</Text>
+      </View>
+    </View>
+  );
+};
+
 
   if (loading) {
     return (
@@ -321,6 +454,52 @@ export default function FishDetailScreen() {
             <Text>서식지: {fish.habitat}</Text>
             <Text>몸길이: {fish.bodyLength}</Text>
           </View>
+
+
+            {/* ──────────────── ✅ 댓글 섹션 (필수 최소) ──────────────── */}
+          <View style={[styles.section, { marginTop: 16 }]}>
+            <Text style={styles.sectionTitle}>댓글</Text>
+
+            {/* 입력창 */}
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="댓글을 입력하세요"
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.sendBtn, posting && { opacity: 0.6 }]}
+                  onPress={handlePostComment}
+                  disabled={posting}
+                >
+                  <Ionicons name="send" size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+
+            {/* 목록 */}
+            {loadingComments ? (
+              <View style={{ paddingVertical: 12 }}>
+                <ActivityIndicator />
+              </View>
+            ) : comments.length === 0 ? (
+              <Text style={{ color: "#777", marginTop: 8 }}>첫 댓글을 남겨보세요.</Text>
+            ) : (
+              <FlatList
+                data={comments}
+                keyExtractor={(item) => String(item.commentId)}
+                renderItem={({ item }) => <CommentItem item={item} />}
+                scrollEnabled={false}              // 상위 ScrollView가 스크롤
+                ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                contentContainerStyle={{ paddingTop: 12 }}
+              />
+            )}
+          </View>
+
+
         </>
       ) : (
         <>

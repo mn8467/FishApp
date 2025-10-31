@@ -1,4 +1,3 @@
-// user-repo.ts
 import pool from "../db";
 import { NotFoundError,DbError } from "../utils/error";  
 import type { authUserRow } from "../dto/auth-dto";

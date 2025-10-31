@@ -49,7 +49,7 @@ export async function findByFishId(fish_id:number): Promise<FishAllDataDTO> {
         `;
   try {
     const { rows } = await pool.query(sql, [fish_id]);
-    return rows[0] ?? null;
+    return rows[0] ?? null; // 단건 조회시 사용
   } catch (e) {
     throw new DbError("DbError 발생", e);
   }

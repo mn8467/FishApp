@@ -2,7 +2,8 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import userRouter from "./routes/user-routes";
 import loginRouter from "./routes/auth-routes";
-import fishRouter from "./routes/fish-routes"
+import fishRouter from "./routes/fish-routes";
+import commentRouter from "./routes/comment-routes";
 import passport from "./config/passport";
 
 
@@ -30,6 +31,7 @@ app.get("/api/home", (req: Request, res: Response) => {
 });
 
 //user 경로 라우터
+app.use('/api/comments',commentRouter)
 app.use('/api/users',userRouter)
 app.use('/api/auth',loginRouter) // 요청시 userId, access token 발급
 app.use('/api/fish',fishRouter )
