@@ -13,7 +13,7 @@ export default function LikeScreen() {
     Array.from({ length: 20 }).map((_, i) => ({ id: String(i), body: `댓글 ${i}` }))
   );
 
-   const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight(); // 없으면 0으로 두세요

@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
-
+item: { padding: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: "#ddd" },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 8 } as const,
   input: {
     flex: 1, minHeight: 40, maxHeight: 120, paddingHorizontal: 12, paddingVertical: 10,
