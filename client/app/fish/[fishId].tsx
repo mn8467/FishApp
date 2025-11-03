@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 // 상단 import들 옆에 붙이기
 import {
+  SafeAreaView,
   View,
   Text,
   Image,
@@ -83,6 +84,15 @@ export default function FishDetailScreen() {
   const [showDefenceInfo, setShowDefenceInfo] = useState(false);
   const [showSpecialInfo, setShowSpecialInfo] = useState(false);
   const [showSpeedInfo, setShowSpeedInfo] = useState(false);
+
+  //───────────────────────────── 댓글 입력창 ─────────────────────────────
+const inputRef = useRef<TextInput>(null);
+const listRef = useRef<FlatList>(null);
+ const onPressReply = () => {
+    // 필요 시 리스트를 맨 아래로 내리고 입력창에 포커스
+    listRef.current?.scrollToEnd({ animated: true });
+    inputRef.current?.focus();
+  };  
 
     // ───────────────────────────── 댓글: 상태 ─────────────────────────────
   const [comments, setComments] = useState<Comment[]>([]);
@@ -233,6 +243,7 @@ const CommentItem = ({ item }: { item: Comment }) => {
 
   return (
     <ScrollView style={styles.container}>
+      <SafeAreaView style={{ flex: 5 }}></SafeAreaView>
       {/* 상단 이미지 */}
       <View style={styles.imageContainer}>
         <Image source={{ uri: fish.imageUrl }} style={styles.image} />
@@ -469,6 +480,7 @@ const CommentItem = ({ item }: { item: Comment }) => {
                   value={newComment}
                   onChangeText={setNewComment}
                   multiline
+                  onFocus={() => requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }))}
                 />
                 <TouchableOpacity
                   style={[styles.sendBtn, posting && { opacity: 0.6 }]}

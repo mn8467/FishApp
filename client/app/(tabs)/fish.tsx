@@ -1,85 +1,51 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
-import { View, Text, TextInput, FlatList, Image, Pressable, StyleSheet, Dimensions, Animated } from "react-native"; // ✅ 수정: SafeAreaView 제거(미사용)
-import { Ionicons, Feather } from "@expo/vector-icons";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { View, Text, TextInput, FlatList, Image, Pressable, StyleSheet, Dimensions, Animated } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
-import { useRouter } from "expo-router"; // ✅ 수정: 라우팅을 위해 추가
+import { useRouter } from "expo-router";
 
-type Fish = {
-  fishId: string;
-  fishName: string;
-  imageUri: string;
-};
-
-// (더미데이터 제거 유지)
-
+type Fish = { fishId: string; fishName: string; imageUri: string };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-// ✅ 수정: 상세 화면으로 이동할 수 있도록 onPress를 주입받게 변경
 function FishItem({ item, size, onPress }: { item: Fish; size: number; onPress: () => void }) {
   const scale = useRef(new Animated.Value(1)).current;
-
-  const onPressIn = () => {
-    Animated.spring(scale, {
-      toValue: 0.9,
-      useNativeDriver: true,
-      friction: 5,
-      tension: 150,
-    }).start();
-  };
-
-  const onPressOut = () => {
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 5,
-      tension: 150,
-    }).start();
-  };
+  const onPressIn = () => Animated.spring(scale, { toValue: 0.9, useNativeDriver: true, friction: 5, tension: 150 }).start();
+  const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 150 }).start();
 
   return (
-    <AnimatedPressable
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      onPress={onPress} // ✅ 수정: 아이템 터치 시 부모에서 넘긴 핸들러 실행
-      style={[styles.cell, { width: size, transform: [{ scale }] }]}
-    >
+    <AnimatedPressable onPressIn={onPressIn} onPressOut={onPressOut} onPress={onPress} style={[styles.cell, { width: size, transform: [{ scale }] }]}>
       <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
-        {item.imageUri ? <Image source={{ uri: item.imageUri }} style={styles.image} /> : null}
+        {!!item.imageUri && <Image source={{ uri: item.imageUri }} style={styles.image} />}
       </View>
-      <Text style={styles.caption} numberOfLines={1}>
-        {item.fishName /* name → fishName 유지 */}
-      </Text>
+      <Text style={styles.caption} numberOfLines={1}>{item.fishName}</Text>
     </AnimatedPressable>
   );
 }
 
 export default function Home() {
-  const router = useRouter(); // ✅ 수정: 네비게이션 훅
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [fishes, setFishes] = useState<Fish[]>([]);
   const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
-  const HOST = CURRENT_HOST || "localhost"; // ✅ 수정: 환경변수 미설정 시 안전한 기본값
+  const HOST = CURRENT_HOST || "localhost";
 
-  // 서버에서 데이터 불러오기
   useEffect(() => {
     const fetchFishes = async () => {
       try {
-        const res = await axios.get(`http://${HOST}:8080/api/fish/data`); // ✅ 수정: HOST 사용
+        const res = await axios.get(`http://${HOST}:8080/api/fish/data`);
         const mapped: Fish[] = res.data.map((f: any) => ({
           fishId: f.fishId,
           fishName: f.fishName,
-          imageUri: f.imageUrl ?? "", // 빈 문자열 기본값
-                                      // Url(이미지) 없을 경우  WARN  source.uri should not be an empty string 디버깅 뜸
+          imageUri: f.imageUrl ?? null, // 빈 문자열 대신 null 처리
         }));
         setFishes(mapped);
       } catch (err) {
         console.error("🐟 데이터 로드 실패:", err);
       }
     };
-
     fetchFishes();
-  }, [HOST]); // ✅ 수정: HOST 변경 시 재요청
+  }, [HOST]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -87,63 +53,68 @@ export default function Home() {
   }, [query, fishes]);
 
   const { width } = Dimensions.get("window");
-  const padding = 16,
-    gap = 12,
-    columns = 4;
+  const padding = 16, gap = 12, columns = 4;
   const itemSize = Math.floor((width - padding * 2 - gap * (columns - 1)) / columns);
 
-  // ✅ 수정: renderItem에서 각 아이템을 누르면 상세로 이동하도록 구현
   const renderItem = ({ item }: { item: Fish }) => (
     <FishItem
       item={item}
       size={itemSize}
-      onPress={() =>
-        router.push({
-          pathname: "/fish/[fishId]", // 동적 라우트
-          params: { fishId: item.fishId }, // ✅ 수정: 파라미터로 fishId 전달
-        })
-      }
+      onPress={() => router.push({ pathname: "/fish/[fishId]", params: { fishId: item.fishId } })}
     />
   );
 
   return (
-    <SafeAreaProvider style={styles.wrap}>
-      {/* 검색바 */}
-      <View style={styles.searchBox}>
-        <Ionicons name="search" size={18} color="#9AA0A6" style={{ marginRight: 8 }} />
-        <TextInput
-          placeholder="검색"
-          placeholderTextColor="#9AA0A6"
-          value={query}
-          onChangeText={setQuery}
-          style={styles.searchInput}
-          clearButtonMode="while-editing"
-        />
-      </View>
+    <SafeAreaProvider>
+      {/* SafeAreaView로 상/하단 노치 영역 보호 */}
+      <SafeAreaView style={styles.wrap} edges={["top", "bottom"]}>
+        {/* ⬇️ 여기 ‘TopArea’는 항상 고정: 데이터가 0개여도 절대 안 내려감 */}
+        <View style={styles.topArea}>
+          {/* 검색바 */}
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={18} color="#9AA0A6" style={{ marginRight: 8 }} />
+            <TextInput
+              placeholder="검색"
+              placeholderTextColor="#9AA0A6"
+              value={query}
+              onChangeText={setQuery}
+              style={styles.searchInput}
+              clearButtonMode="while-editing"
+            />
+          </View>
 
-      {/* 칩들 */}
-      <View style={styles.chipsRow}>
-        <Chip icon={<Ionicons name="heart-outline" size={16} />} label="즐겨찾기" />
-        <Chip icon={<Ionicons name="time-outline" size={16} />} label="기록" />
-        <Chip icon={<Feather name="file-text" size={16} />} label="주문" />
-      </View>
+          {/* 칩들 */}
+          <View style={styles.chipsRow}>
+            <Chip icon={<Ionicons name="heart-outline" size={16} />} label="즐겨찾기" />
+            <Chip icon={<Ionicons name="time-outline" size={16} />} label="기록" />
+          </View>
 
-      {/* 섹션 헤더 */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>제목</Text>
-        <Ionicons name="chevron-forward" size={18} color="#111" />
-      </View>
+          {/* 섹션 헤더 */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>제목</Text>
+            <Ionicons name="chevron-forward" size={18} color="#111" />
+          </View>
+        </View>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(i) => i.fishId} // fishId로 key 유지
-        renderItem={renderItem}
-        numColumns={4}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 80 }}
-        columnWrapperStyle={{ gap }}
-        ItemSeparatorComponent={() => <View style={{ height: gap }} />}
-        showsVerticalScrollIndicator={false}
-      />
+        {/* ⬇️ 여기부터가 스크롤 되는 영역 */}
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={filtered}
+            keyExtractor={(i) => i.fishId}
+            renderItem={renderItem}
+            numColumns={4}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 80 }}
+            columnWrapperStyle={{ gap }}
+            ItemSeparatorComponent={() => <View style={{ height: gap }} />}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ height: 200, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: "#888" }}>데이터가 없습니다.</Text>
+              </View>
+            }
+          />
+        </View>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
@@ -161,6 +132,16 @@ function Chip({ icon, label, onPress }: { icon: React.ReactNode; label: string; 
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: "#fff" },
+
+  // ⬇️ 고정 상단 영역 (검색/칩/섹션)
+  topArea: {
+    backgroundColor: "#fff",
+    paddingTop: 0,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#e5e5e5",
+  },
+
   searchBox: {
     marginHorizontal: 16,
     height: 40,
@@ -172,6 +153,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   searchInput: { flex: 1, fontSize: 15 },
+
   chipsRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, marginBottom: 8 },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -182,14 +164,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   chipTxt: { fontSize: 13, color: "#111" },
+
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 4,
   },
   sectionTitle: { fontSize: 18, fontWeight: "700", marginRight: 4 },
+
   cell: { alignItems: "center" },
   circle: { backgroundColor: "#F5F5F7", overflow: "hidden", alignItems: "center", justifyContent: "center" },
   image: { width: "100%", height: "100%" },
