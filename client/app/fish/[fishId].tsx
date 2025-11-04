@@ -21,6 +21,8 @@ import { styles } from "../../components/fishdetailstyle";
 import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { UserDTO } from "@/dto/userDTO";
 
 const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
 
@@ -81,7 +83,8 @@ export default function FishDetailScreen() {
   const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
   const [fish, setFish] = useState<Fish | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const qc = useQueryClient(); // ✅ React Query 캐시 핸들
+  const me = qc.getQueryData<UserDTO>(["me"]); // 객체 그대로
   
 
   // 설명 토글
@@ -205,6 +208,7 @@ export default function FishDetailScreen() {
     try {
       const res = await axios.post<any>(
         `http://${CURRENT_HOST}:8080/api/fish/${fishId}/comments`,
+
         { userId: CURRENT_USER_ID, body }
       );
       const serverComment = normalizeComment(res.data);
