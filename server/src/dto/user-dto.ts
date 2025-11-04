@@ -23,5 +23,4 @@ export interface UserRow {
   nickname: string;
   password: string;
   email: string;
-  // nick_name: string;  // DB에 있으면 추가
 }

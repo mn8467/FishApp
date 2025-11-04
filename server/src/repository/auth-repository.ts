@@ -1,6 +1,6 @@
 import pool from "../db";
 import { NotFoundError,DbError } from "../utils/error";  
-import type { authUserRow } from "../dto/auth-dto";
+import type { authUserRow, UserDTO } from "../dto/auth-dto";
 
 export async function findByUserName(user_name: string): Promise<authUserRow | null> {
   const sql = `
@@ -16,6 +16,27 @@ export async function findByUserName(user_name: string): Promise<authUserRow | n
     throw new DbError("findByUserName failed", e);
   }
 }
+
+export async function findByUserIdforCache(user_id:string): Promise<UserDTO>{
+  const sql = `
+              SELECT
+                  user_id AS userId,
+                  nickname,
+                  email,
+                  user_role AS userRole,
+                  user_status AS userStatus
+              FROM users
+              WHERE user_id = $1
+              LIMIT 1;
+              `
+              try {
+    const { rows } = await pool.query(sql, [user_id]);
+    return rows[0] ?? null;
+  } catch (e) {
+    throw new DbError("정보를 찾지 못했습니다 ", e);
+  }
+}
+
 
 export async function findByUserId(user_id: number): Promise<authUserRow | null> {
   const sql = `

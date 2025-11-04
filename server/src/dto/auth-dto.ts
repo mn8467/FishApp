@@ -1,3 +1,11 @@
+//인증 후 React Query 에 저장할 때 사용할 인터페이스
+export interface UserDTO{
+  userId:string;
+  nickname:string;
+  userRole:string;
+  email:string;
+  userStatus:string;
+}
 
 // 로그인 요청 DTO (client -> server)
 export interface LoginRequestDTO {

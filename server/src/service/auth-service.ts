@@ -2,7 +2,7 @@ import redisClient from "../redis";
 import bcrypt from 'bcrypt';
 import {LoginRequestDTO,LoginResponseDTO,TokenPayload}  from "../dto/auth-dto";
 import {AuthMapper} from "../mapper/auth-mapper"
-import { findByUserName, findByUserId } from '../repository/auth-repository';
+import { findByUserName, findByUserId, findByUserIdforCache } from '../repository/auth-repository';
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { NextFunction } from "express";
 import { TokenStatus } from "../utils/type";
@@ -12,6 +12,12 @@ const JWT_SECRET = process.env.JWT_SECRET as string
 export async function validateUserByUserId(user_id:number) {
   const user = await findByUserId(user_id);
   return user; // 성공 시 user 반환
+}
+
+// 인증 완료 후 React Query 사용에 필요한 함수 => 회원정보를 가져오는 함수
+export async function getUserData(userId:string){
+  const userRaw = await findByUserIdforCache(userId);
+  return userRaw
 }
 
 export async function extractUserId(
@@ -74,6 +80,7 @@ export async function authenticateUserByEmail(user:LoginRequestDTO) {
 
 
 
+
 export async function reIssueAccessToken(userId:number) { // user_id 쿼리에 사용하기 위해서 변수 변환
   const userRaw = await findByUserId(userId);
   const userEntity = AuthMapper.toEntity(userRaw);
@@ -105,7 +112,7 @@ export async function issueTokens(user: LoginResponseDTO) {
   const refreshToken = jwt.sign(
     { userId: user.userId },
     process.env.JWT_SECRET as string, 
-    { expiresIn: "10m" }
+    { expiresIn: "20m" }
   );
 
     // 기존 refresh 토큰 무효화 (rotation 대비)
@@ -164,5 +171,5 @@ export async function verifyAccessToken(token: string): Promise<TokenStatus> {
     return "EXPIRED";
   }
   return "INVALID";
-}
+ }
 }

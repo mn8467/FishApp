@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
+import * as SecureStore from "expo-secure-store"; 
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-
 import {
+  Alert,
   Pressable,
   View,
   Text,
@@ -56,6 +57,14 @@ interface Comment {
   updatedAt: Date;
 }
 
+interface User{
+  userId:string;
+  nickname:string;
+  userRole:string;
+  email:string;
+  userStatus:string;
+}
+
 const STAT_MAX = 200;
 const TOTAL_MAX = 1000;
 const LABEL_WIDTH = 88;
@@ -72,6 +81,8 @@ export default function FishDetailScreen() {
   const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
   const [fish, setFish] = useState<Fish | null>(null);
   const [loading, setLoading] = useState(true);
+
+  
 
   // 설명 토글
   const [showHpInfo, setShowHpInfo] = useState(false);
@@ -92,12 +103,13 @@ export default function FishDetailScreen() {
   const [posting, setPosting] = useState(false);
   const CURRENT_USER_ID = 1;
 
+
   // 물고기 정보
   useEffect(() => {
     const fetchFish = async () => {
       try {
         const res = await axios.get<Fish>(
-          `http://${CURRENT_HOST}:8080/api/fish/${fishId || 1}`
+          `http://${CURRENT_HOST}:8080/api/fish/${fishId}`
         );
         setFish(res.data);
       } catch (err) {
@@ -121,11 +133,25 @@ export default function FishDetailScreen() {
     updatedAt: new Date(raw.updatedAt),
   });
 
+  useEffect(()=>{
+    const fetchUserData = async() => {
+      try{
+        const res = await axios.get<User>(`http://${CURRENT_HOST}:8080/api/comments/data/${fishId}`)
+      }catch(e){
+
+      }
+    }
+  })
+
   // 댓글 가져오기
   useEffect(() => {
     const fetchComments = async () => {
-      if (!fishId) return;
+      
+      if (!fishId) {
+        return Alert.alert("❌", "잘못된 접근입니다.");
+      }
       try {
+        
         setLoadingComments(true);
         const res = await axios.get<any[]>(
           `http://${CURRENT_HOST}:8080/api/comments/data/${fishId}`
@@ -145,6 +171,12 @@ export default function FishDetailScreen() {
 
   // 댓글 작성 ------------------------------------------------------------------ 업뎃 예정
   const handlePostComment = async () => {
+      const token = await SecureStore.getItemAsync("accessToken");
+
+      if(!token){
+        return Alert.alert("❌", "로그인이 필요합니다.");
+      }
+  
     const body = newComment.trim();
     if (!body || !fishId) return;
 

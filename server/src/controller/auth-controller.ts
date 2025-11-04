@@ -1,7 +1,7 @@
 import { LoginRequestDTO,LoginResponseDTO } from "../dto/auth-dto";
 import { Request, Response,NextFunction  } from "express";
 import passport from "passport";
-import {reIssueAccessIfValid, verifyAccessToken,issueTokens,delRefreshToken, extractUserId } from "../service/auth-service";
+import {reIssueAccessIfValid, verifyAccessToken,issueTokens,delRefreshToken, extractUserId, getUserData } from "../service/auth-service";
 
 
 // 첫 Access token 발급
@@ -26,12 +26,18 @@ export const authenticateUser = (
         const { accessToken } = await issueTokens(user);
         // issueTokens 안에서 refreshToken은 Redis에 저장하는 로직만 실행
 
+        const userId = await extractUserId(accessToken);
+        const userData = await getUserData(userId);
+        
+        console.log("userData 나와!",userData)
+
         console.log("발급된 Access Token:", accessToken);
 
         // 클라이언트에는 Access Token만 내려줌
         return res.status(200).json({
           success: true,
-          accessToken
+          accessToken,
+          userData
       });
       } catch (error) {
         console.error("로그인 중 오류:", error);
@@ -126,13 +132,13 @@ export const verifyAuthToken = async (req: Request, res: Response, next:NextFunc
 
  console.log("status :",status)
   if (status === "VALID") {
-    return res.status(200).json({
-      success: true,
-      code: "TOKEN_VALID",
-      message: "토큰 검증 성공"
-    });
-  }
 
+  return res.status(200).json({
+    success: true,
+    code: "TOKEN_VALID",
+    message: "토큰 검증 성공",
+  });
+}
   if (status === "EXPIRED") {
     try {
       const newAccess = await reIssueAccessIfValid(access);

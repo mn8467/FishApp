@@ -1,6 +1,6 @@
 import pool from "../db";
 import { ResponseCommentDTO } from "../dto/comment-dto";
-import { NotFoundError,DbError } from "../utils/error";  
+import { DbError } from "../utils/error";  
 
 //상세 물고기 페이지의 코멘트 => fish_id 는 1을 조건으로 함
 export async function findCommentByFishId(fish_id:number): Promise<ResponseCommentDTO[]> {
