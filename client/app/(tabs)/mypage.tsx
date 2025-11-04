@@ -5,13 +5,16 @@ import { getUserId } from "@/utils/secureStore";
 import { useState,useEffect } from "react";
 import * as SecureStore from "expo-secure-store"; 
 import axios from "axios";
-import api from "@/api/axiosInstance"; // ✅ 인터셉터 적용된 axios 인스턴스
+import api from "@/api/axiosInstance";
+import { useQueryClient } from "@tanstack/react-query"; // ✅ 추가
+
 
 
 export default function MypageScreen() {
 
 const [accessToken, setAccessToken] = useState<string | null>(null);
 const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
+const qc = useQueryClient(); // ✅ React Query 캐시 핸들
   
 
   useEffect(() => {
@@ -52,6 +55,8 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
       // ✅ 서버 로그아웃 성공 → Access Token 삭제
       await SecureStore.deleteItemAsync("accessToken");
       setAccessToken(null); // 화면 상태만 초기화
+      qc.removeQueries({ queryKey: ["me"] }); // ✅ 캐시 비우기
+
 
       Alert.alert("로그아웃 완료!", undefined, [{ text: "확인" }]);
     }
