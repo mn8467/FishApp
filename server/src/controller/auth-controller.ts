@@ -1,7 +1,7 @@
 import { LoginRequestDTO,LoginResponseDTO } from "../dto/auth-dto";
 import { Request, Response,NextFunction  } from "express";
 import passport from "passport";
-import {issueTokens,delRefreshToken, extractUserId, getUserData } from "../service/auth-service";
+import {issueTokens,delRefreshToken, extractUserId } from "../service/auth-service";
 
 export const authToken = async(req:Request, res:Response , next:NextFunction)=>{
   try{ 

@@ -14,25 +14,21 @@ export async function validateUserByUserId(user_id:number) {
   return user; // 성공 시 user 반환
 }
 
-// 인증 완료 후 React Query 사용에 필요한 함수 => 회원정보를 가져오는 함수
-export async function getUserData(userId:string){
-  const userRaw = await findByUserIdforCache(userId);
-  return userRaw
-}
+
 
 export async function extractUserId(
   access: string
-): Promise<string> {
+): Promise<number> {
   try {
     // 1) 유효한 경우 → verify 통과
     const decoded = jwt.verify(access, JWT_SECRET) as JwtPayload;
-    return String(decoded.userId);
+    return Number(decoded.userId);
   } catch (err: any) {
     // 2) 만료된 경우 → decode만 허용 (payload만 추출)
     if (err.name === "TokenExpiredError") {
       const decoded = jwt.decode(access) as JwtPayload | null;
       if (decoded?.userId) {
-        return String(decoded.userId);
+        return Number(decoded.userId);
       }
       throw new Error("USER_ID_NOT_FOUND");
     }
@@ -41,7 +37,7 @@ export async function extractUserId(
   }
 }
 
-export async function delRefreshToken(user_id: string): Promise<boolean> {
+export async function delRefreshToken(user_id: number): Promise<boolean> {
   try {
     const result = await redisClient.del(`refresh:${user_id}`);
     if (result === 1) {

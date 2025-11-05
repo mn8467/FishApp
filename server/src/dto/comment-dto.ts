@@ -9,3 +9,19 @@ export interface ResponseCommentDTO{
     createdAt : Date;
     updatedAt : Date;
 }
+
+export interface CommentDTO{
+    commentId:number;
+    userId:number;
+    fishId:number;
+    body:string;
+    isDeleted:boolean;
+    createdAt : Date;
+    updatedAt : Date;
+}
+
+export interface CommentCreateDTO{
+    userId: number;
+    fishId: number;
+    body: string;
+} 

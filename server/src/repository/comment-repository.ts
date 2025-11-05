@@ -1,5 +1,5 @@
 import pool from "../db";
-import { ResponseCommentDTO } from "../dto/comment-dto";
+import { CommentCreateDTO, CommentDTO, ResponseCommentDTO } from "../dto/comment-dto";
 import { DbError } from "../utils/error";  
 
 //상세 물고기 페이지의 코멘트 => fish_id 는 1을 조건으로 함
@@ -25,4 +25,15 @@ export async function findCommentByFishId(fish_id:number): Promise<ResponseComme
   } catch (e) {
     throw new DbError("DbError 발생", e);
   }
+}
+
+export async function insertComment(user_id: number, fish_id: number, body: string) {
+  const sql = `
+    INSERT INTO comments (user_id, fish_id, body, is_deleted, created_at, updated_at)
+    VALUES ($1, $2, $3, FALSE, NOW(), NOW())
+    RETURNING comment_id AS "commentId";
+  `;
+  const { rows, rowCount } = await pool.query(sql, [user_id, fish_id, body]);
+  if (rowCount !== 1) throw new DbError("INSERT_FAILED");
+  return rows[0]; // { commentId: ... }
 }

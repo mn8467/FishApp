@@ -14,7 +14,6 @@ export default function MypageScreen() {
 
 const [accessToken, setAccessToken] = useState<string | null>(null);
 const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
-const qc = useQueryClient(); // ✅ React Query 캐시 핸들
   
 
   useEffect(() => {
@@ -55,7 +54,6 @@ const qc = useQueryClient(); // ✅ React Query 캐시 핸들
       // ✅ 서버 로그아웃 성공 → Access Token 삭제
       await SecureStore.deleteItemAsync("accessToken");
       setAccessToken(null); // 화면 상태만 초기화
-      qc.removeQueries({ queryKey: ["me"] }); // ✅ 캐시 비우기
 
 
       Alert.alert("로그아웃 완료!", undefined, [{ text: "확인" }]);

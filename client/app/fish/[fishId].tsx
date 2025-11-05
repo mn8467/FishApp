@@ -23,6 +23,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserDTO } from "@/dto/userDTO";
+import api from "@/api/axiosInstance";
 
 const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
 
@@ -88,8 +89,6 @@ export default function FishDetailScreen() {
   const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
   const [fish, setFish] = useState<Fish | null>(null);
   const [loading, setLoading] = useState(true);
-  const qc = useQueryClient(); // ✅ React Query 캐시 핸들
-  const me = qc.getQueryData<UserDTO>(["me"]); // 객체 그대로
 
 
   // 설명 토글
@@ -145,16 +144,6 @@ export default function FishDetailScreen() {
     updatedAt: new Date(raw.updatedAt),
   });
 
-  useEffect(()=>{
-    const fetchUserData = async() => {
-      try{
-        const res = await axios.get<User>(`http://${CURRENT_HOST}:8080/api/comments/data/${fishId}`)
-      }catch(e){
-
-      }
-    }
-  })
-
   // 댓글 가져오기
   useEffect(() => {
     const fetchComments = async () => {
@@ -166,7 +155,7 @@ export default function FishDetailScreen() {
         
         setLoadingComments(true);
         const res = await axios.get<any[]>(
-          `http://${CURRENT_HOST}:8080/api/comments/data/${fishId}`
+          `http://${CURRENT_HOST}:8080/api/comments/${fishId}`
         );
         const normalized = res.data
           .map(normalizeComment)
@@ -184,30 +173,42 @@ export default function FishDetailScreen() {
 
   // 댓글 작성 ------------------------------------------------------------------ 업뎃 예정
   // 과연 댓글에 낙관적 업데이트가 필요할까? 내가 댓글을 쓰여진줄알고 착각할수도 있기때문에 아닌것 같다..
-  const handlePostComment = async () => {
-      const token = await SecureStore.getItemAsync("accessToken");
-      
-      if(!token){
-        return Alert.alert("❌", "로그인이 필요합니다.");
-      }
+ const handlePostComment = async () => {
+  // 1) 로그인 체크 (인터셉터가 있어도 UX용 가드)
+  const token = await SecureStore.getItemAsync("accessToken");
+  if (!token) {
+    return Alert.alert("❌", "로그인이 필요합니다.");
+  }
 
+  // 2) 입력 검증
+  const body = newComment.body?.trim();
+  if (!fishId) return Alert.alert("잘못된 접근입니다.");
+  if (!body)   return Alert.alert("알림", "댓글 내용을 입력하세요.");
 
-    // UX: 전송 직후 아래로 스크롤 + 포커스 유지
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-      setTimeout(() => inputRef.current?.focus(), 0);
-    });
+  setPosting(true);
 
-    try {
-      const res = await axios.post<any>(
-        `http://${CURRENT_HOST}:8080/api/fish/${fishId}/comments`,newComment
-      );
-      
-    } catch (err) {
-    } finally {
-      setPosting(false);
-    }
-  };
+  // 3) UX: 전송 직후 아래로 스크롤 + 포커스 유지
+  requestAnimationFrame(() => {
+    scrollRef.current?.scrollToEnd({ animated: true });
+    setTimeout(() => inputRef.current?.focus(), 0);
+  });
+
+  try {
+    // ✅ api에 baseURL이 세팅되어 있다면 상대 경로로 호출
+    await api.post(`http://${CURRENT_HOST}:8080/api/comments/${fishId}/new`, { body }
+    );
+
+    // 4) 성공 처리: 입력 비우기
+    setNewComment(prev => ({ ...prev, body: "" }));
+    // 필요 시 목록 갱신: qc.invalidateQueries({ queryKey: ["comments", String(fishId)] });
+  } catch (err: any) {
+    console.error("💬 댓글 등록 실패:", err?.response?.data ?? err);
+    Alert.alert("오류", "댓글 등록에 실패했습니다.");
+  } finally {
+    setPosting(false);
+  }
+};
+
 
   const CommentItem = ({ item }: { item: Comment }) => {
     const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();

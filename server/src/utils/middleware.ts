@@ -1,15 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { extractUserId, getUserData, reIssueAccessIfValid, verifyAccessToken } from "../service/auth-service";
+import { reIssueAccessIfValid, verifyAccessToken } from "../service/auth-service";
 
 // 헤더로 받은 Access Token 인가
 export const verifyAuthToken = async (req: Request, res: Response, next:NextFunction) => {
   console.log("경로 잘 들어가짐??");
     const raw = req.headers["authorization"]; // ✅ 이렇게
-    const access =
-    typeof raw === "string" && raw.startsWith("Bearer ")
-      ? raw.slice(7)
-      : "";
+    const access = typeof raw === "string" && raw.startsWith("Bearer ") ? raw.slice(7): "";
   
       console.log("토큰 뜨나?", access);
 
