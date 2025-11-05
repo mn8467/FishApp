@@ -49,14 +49,19 @@ interface Fish {
 }
 
 interface Comment {
-  commentId: string;
+  commentId: string; 
   userId: string;
   nickname: string;
   fishId: string;
   body: string;
-  isDeleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  isDeleted: boolean;   //댓글을 가져올때 아니면 필요없음
+  createdAt: Date;      //작성될때 쿼리에서 생성
+  updatedAt: Date;      //작성될때 쿼리에서 생성
+}
+
+interface WriteComment{
+    fishId: string;
+    body: string;
 }
 
 interface User{
@@ -85,7 +90,7 @@ export default function FishDetailScreen() {
   const [loading, setLoading] = useState(true);
   const qc = useQueryClient(); // ✅ React Query 캐시 핸들
   const me = qc.getQueryData<UserDTO>(["me"]); // 객체 그대로
-  
+
 
   // 설명 토글
   const [showHpInfo, setShowHpInfo] = useState(false);
@@ -99,10 +104,14 @@ export default function FishDetailScreen() {
   const scrollRef = useRef<ScrollView | null>(null);
   const headerHeight = useHeaderHeight();
 
-  // 댓글 상태
+  // 댓글
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
-  const [newComment, setNewComment] = useState("");
+  
+  const [newComment, setNewComment] = useState<WriteComment>({
+    fishId:"",
+    body:""
+  });
   const [posting, setPosting] = useState(false);
   const CURRENT_USER_ID = 1;
 
@@ -172,32 +181,16 @@ export default function FishDetailScreen() {
     fetchComments();
   }, [fishId]);
 
+
   // 댓글 작성 ------------------------------------------------------------------ 업뎃 예정
+  // 과연 댓글에 낙관적 업데이트가 필요할까? 내가 댓글을 쓰여진줄알고 착각할수도 있기때문에 아닌것 같다..
   const handlePostComment = async () => {
       const token = await SecureStore.getItemAsync("accessToken");
-
+      
       if(!token){
         return Alert.alert("❌", "로그인이 필요합니다.");
       }
-  
-    const body = newComment.trim();
-    if (!body || !fishId) return;
 
-    setPosting(true);
-    const tempId = `temp-${Date.now()}`;
-    const optimistic: Comment = {
-      commentId: tempId,
-      userId: String(CURRENT_USER_ID),
-      nickname: "You",
-      fishId: String(fishId),
-      body,
-      isDeleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    setComments((prev) => [optimistic, ...prev]);
-    setNewComment("");
 
     // UX: 전송 직후 아래로 스크롤 + 포커스 유지
     requestAnimationFrame(() => {
@@ -207,18 +200,10 @@ export default function FishDetailScreen() {
 
     try {
       const res = await axios.post<any>(
-        `http://${CURRENT_HOST}:8080/api/fish/${fishId}/comments`,
-
-        { userId: CURRENT_USER_ID, body }
+        `http://${CURRENT_HOST}:8080/api/fish/${fishId}/comments`,newComment
       );
-      const serverComment = normalizeComment(res.data);
-      setComments((prev) =>
-        prev.map((c) => (c.commentId === tempId ? serverComment : c))
-      );
+      
     } catch (err) {
-      console.error("💬 Error posting comment:", err);
-      setComments((prev) => prev.filter((c) => c.commentId !== tempId));
-      setNewComment(body);
     } finally {
       setPosting(false);
     }
@@ -431,8 +416,9 @@ export default function FishDetailScreen() {
                   ref={inputRef}
                   style={styles.input}
                   placeholder="댓글을 입력하세요"
-                  value={newComment}
-                  onChangeText={setNewComment}
+                  value={newComment.body}
+                  onChangeText={(text) =>
+                  setNewComment(prev => ({ ...prev, body: text }))}
                   multiline
                   onFocus={() =>
                     requestAnimationFrame(() => {

@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "reac
 import axios from "axios";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useQueryClient } from "@tanstack/react-query"; // ✅ 추가
+// import { useQueryClient } from "@tanstack/react-query"; // ✅ 추가
 
 // ✅ 서버 응답 타입 (userData 포함)
 type UserDTO = {
@@ -17,7 +17,7 @@ type UserDTO = {
 export default function Login() {
   const router = useRouter();
   const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
-  const qc = useQueryClient(); // ✅ React Query 캐시 핸들
+  // const qc = useQueryClient(); // ✅ React Query 캐시 핸들
 
   const [form, setForm] = useState({
     userName: "",
@@ -57,14 +57,14 @@ export default function Login() {
 
       if (res.data.success) {
         const accessToken = res.data.accessToken;
-        const userData = res.data.userData;
-        console.log("유저데이터 가져오는지 확인",userData)
+        // const userData = res.data.userData;
+        // console.log("유저데이터 가져오는지 확인",userData)
         
         await saveToSecureStore("accessToken", accessToken);
-        qc.setQueryData<UserDTO>(["me"], userData);
+        // qc.setQueryData<UserDTO>(["me"], userData);
 
-        const cached = qc.getQueryData<UserDTO>(["me"]);
-        console.log("ME cached now >>>", cached);
+        // const cached = qc.getQueryData<UserDTO>(["me"]);
+        // console.log("ME cached now >>>", cached);
 
         Alert.alert("로그인 성공!", undefined, [
           {

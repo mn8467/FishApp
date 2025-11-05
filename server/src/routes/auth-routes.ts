@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { authenticateUser,authLogout, verifyAuthToken} from "../controller/auth-controller";
+import { authenticateUser,authLogout, authToken, } from "../controller/auth-controller";
+import { verifyAuthToken } from "../utils/middleware";
 
 const router = Router();
 
@@ -8,7 +9,7 @@ router.post("/login", authenticateUser);
 //로그아웃
 router.post("/logout", authLogout);
 //토큰 검증 로직
-router.get("/verify", verifyAuthToken);
+router.get("/verify", verifyAuthToken, authToken);
 
 
 

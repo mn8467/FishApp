@@ -112,14 +112,14 @@ export async function issueTokens(user: LoginResponseDTO) {
   const refreshToken = jwt.sign(
     { userId: user.userId },
     process.env.JWT_SECRET as string, 
-    { expiresIn: "20m" }
+    { expiresIn: "5m" }
   );
 
     // 기존 refresh 토큰 무효화 (rotation 대비)
   await redisClient.del(`refresh:${user.userId}`);
 
   // Redis 저장 (만료 10분)
-  await redisClient.set(`refresh:${user.userId}`, refreshToken, { EX: 60 * 20 });
+  await redisClient.set(`refresh:${user.userId}`, refreshToken, { EX: 60 * 5 });
 
   return { accessToken, refreshToken };
 }
@@ -141,7 +141,7 @@ export async function reIssueAccessIfValid(access: string): Promise<string> {
 
   // 3) Refresh 검증
   try {
-    const refreshPayload = jwt.verify(storedRefresh, JWT_SECRET) as JwtPayload;
+    const refreshPayload = jwt.verify(storedRefresh, JWT_SECRET,{ ignoreExpiration: true }) as JwtPayload;
     if (Number(refreshPayload.userId) !== userId) {
       throw new Error("CROSS_USER");
     }
@@ -167,7 +167,8 @@ export async function verifyAccessToken(token: string): Promise<TokenStatus> {
   
     console.error(`에러 발생: ${err.name}: ${err.message}`);
   
-  if (err.name === "TokenExpiredError"){ 
+  if (err.name === "TokenExpiredError"){
+    console.log("새로운 토큰을 생성하는 Logic") 
     return "EXPIRED";
   }
   return "INVALID";
