@@ -106,7 +106,8 @@ export default function FishDetailScreen() {
   // 댓글
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
-  
+  const draftRef = useRef("");
+
   const [newComment, setNewComment] = useState<WriteComment>({
     fishId:"",
     body:""
@@ -168,7 +169,7 @@ export default function FishDetailScreen() {
       }
     };
     fetchComments();
-  }, [fishId]);
+  }, [posting]);
 
 
   // 댓글 작성 ------------------------------------------------------------------ 업뎃 예정
@@ -188,18 +189,22 @@ export default function FishDetailScreen() {
   setPosting(true);
 
   // 3) UX: 전송 직후 아래로 스크롤 + 포커스 유지
-  requestAnimationFrame(() => {
-    scrollRef.current?.scrollToEnd({ animated: true });
-    setTimeout(() => inputRef.current?.focus(), 0);
-  });
+  // requestAnimationFrame(() => {
+  //   scrollRef.current?.scrollToEnd({ animated: true });
+  //   setTimeout(() => inputRef.current?.focus(), 0);
+  // });
 
   try {
     // ✅ api에 baseURL이 세팅되어 있다면 상대 경로로 호출
-    await api.post(`http://${CURRENT_HOST}:8080/api/comments/${fishId}/new`, { body }
+    await api.post(`comments/${fishId}/new`, { body }
     );
 
     // 4) 성공 처리: 입력 비우기
+    
     setNewComment(prev => ({ ...prev, body: "" }));
+
+    Alert.alert("댓글 입력이 완료되었습니다.");
+
     // 필요 시 목록 갱신: qc.invalidateQueries({ queryKey: ["comments", String(fishId)] });
   } catch (err: any) {
     console.error("💬 댓글 등록 실패:", err?.response?.data ?? err);
@@ -408,26 +413,22 @@ export default function FishDetailScreen() {
               <Text>몸길이: {fish.bodyLength}</Text>
             </View>
 
-            {/* ✅ 댓글 섹션 */}
+            {/* 댓글 섹션 */}
             <View style={[styles.section, { marginTop: 16 }]}>
               <Text style={styles.sectionTitle}>댓글</Text>
 
               <View style={styles.inputRow}>
-                <TextInput
-                  ref={inputRef}
-                  style={styles.input}
-                  placeholder="댓글을 입력하세요"
-                  value={newComment.body}
-                  onChangeText={(text) =>
-                  setNewComment(prev => ({ ...prev, body: text }))}
-                  multiline
-                  onFocus={() =>
-                    requestAnimationFrame(() => {
-                      // 포커스 시 맨 아래로 스크롤
-                      scrollRef.current?.scrollToEnd({ animated: true });
-                    })
-                  }
-                />
+                <TextInput 
+                          ref={inputRef} 
+                          style={styles.input} 
+                          placeholder="댓글을 입력하세요" 
+                          value={newComment.body} 
+                          onChangeText={(text) =>
+                             setNewComment(prev => ({ ...prev, body: text }))} 
+                          multiline 
+                          onFocus={() =>
+                             requestAnimationFrame(() => {scrollRef.current?.scrollToEnd({ animated: true }); }) 
+                            }/>
                 <TouchableOpacity
                   style={[styles.sendBtn, posting && { opacity: 0.6 }]}
                   onPress={handlePostComment}
