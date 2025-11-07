@@ -25,6 +25,54 @@ item: { padding: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: "
     backgroundColor: "#f7f9fb",
   },
 
+    /* ── 댓글 수정/삭제 스타일 영역 ─────────────────────────────────────────── */
+    editInput: {
+      marginTop: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: "#ddd",
+      borderRadius: 8,
+      fontSize: 14,
+      backgroundColor: "#fff",
+    },
+    editCancelBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: "#eee",
+    },
+    editCancelText: { color: "#333", fontWeight: "600" },
+    editSaveBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: "#4BA3C3",
+    },
+    editSaveText: { color: "#fff", fontWeight: "700" },
+
+    // 바텀시트
+    sheetBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
+    sheetContainer: {
+      backgroundColor: "#fff",
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      paddingBottom: 24,
+      paddingTop: 8,
+      paddingHorizontal: 12,
+      position: "absolute",
+      left: 0, right: 0, bottom: 0,
+      shadowColor: "#000", shadowOpacity: 0.15,
+      shadowOffset: { width: 0, height: -2 }, shadowRadius: 8, elevation: 10,
+    },
+    sheetHandle: {
+      alignSelf: "center", width: 40, height: 4,
+      borderRadius: 2, backgroundColor: "#ddd", marginBottom: 8,
+    },
+    sheetItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 14, paddingHorizontal: 6 },
+    sheetItemText: { fontSize: 16, color: "#222" },
+    sheetCancelText: { fontSize: 16, color: "#555", textAlign: "center", fontWeight: "600" },
+
   /* ── 탭 영역 ─────────────────────────────────────────── */
   tabContainer: {
     flexDirection: "row",

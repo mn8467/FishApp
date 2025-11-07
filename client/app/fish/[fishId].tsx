@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import * as SecureStore from "expo-secure-store"; 
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import {
+  Modal,
   Alert,
   Pressable,
   View,
@@ -21,7 +22,7 @@ import { styles } from "../../components/fishdetailstyle";
 import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient,useMutation } from "@tanstack/react-query";
 import { UserDTO } from "@/dto/userDTO";
 import api from "@/api/axiosInstance";
 
@@ -65,6 +66,11 @@ interface WriteComment{
     body: string;
 }
 
+interface EditComment{
+  fishId: string;
+  body: string;
+}
+
 interface User{
   userId:string;
   nickname:string;
@@ -72,6 +78,20 @@ interface User{
   email:string;
   userStatus:string;
 }
+
+  const commentsKey = (fishId?: string | number) => ["comments", String(fishId ?? "")];
+
+  // 댓글 정규화
+  const normalizeComment = (raw: any): Comment => ({
+    commentId: String(raw.commentId),
+    userId: String(raw.userId),
+    nickname: raw.nickname ?? "",
+    fishId: String(raw.fishId),
+    body: String(raw.body ?? ""),
+    isDeleted: Boolean(raw.isDeleted),
+    createdAt: new Date(raw.createdAt),
+    updatedAt: new Date(raw.updatedAt),
+  });
 
 const STAT_MAX = 200;
 const TOTAL_MAX = 1000;
@@ -106,15 +126,20 @@ export default function FishDetailScreen() {
   // 댓글
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
-  const draftRef = useRef("");
 
   const [newComment, setNewComment] = useState<WriteComment>({
     fishId:"",
     body:""
   });
   const [posting, setPosting] = useState(false);
-  const CURRENT_USER_ID = 1;
 
+  // 댓글 수정 기능: 작업메뉴/편집
+const [menuComment, setMenuComment] = useState<Comment | null>(null);
+const [editingId, setEditingId] = useState<string | null>(null);
+const [editText, setEditText] = useState<EditComment>({
+    fishId:"",
+    body:""
+  });
 
   // 물고기 정보
   useEffect(() => {
@@ -133,17 +158,7 @@ export default function FishDetailScreen() {
     fetchFish();
   }, [fishId]);
 
-  // 댓글 정규화
-  const normalizeComment = (raw: any): Comment => ({
-    commentId: String(raw.commentId),
-    userId: String(raw.userId),
-    nickname: raw.nickname ?? "",
-    fishId: String(raw.fishId),
-    body: String(raw.body ?? ""),
-    isDeleted: Boolean(raw.isDeleted),
-    createdAt: new Date(raw.createdAt),
-    updatedAt: new Date(raw.updatedAt),
-  });
+
 
   // 댓글 가져오기
   useEffect(() => {
@@ -155,7 +170,7 @@ export default function FishDetailScreen() {
       try {
         
         setLoadingComments(true);
-        const res = await axios.get<any[]>(
+        const res = await axios.get<Comment[]>(
           `http://${CURRENT_HOST}:8080/api/comments/${fishId}`
         );
         const normalized = res.data
@@ -171,6 +186,56 @@ export default function FishDetailScreen() {
     fetchComments();
   }, [posting]);
 
+        // 댓글 수정(낙관적 업데이트 적용: 성공 가정 → 실패 시 롤백)
+        const handleEditSubmit = async (commentId: string, nextBody: string) => {
+          const body = nextBody.trim();
+          if (!body) return Alert.alert("알림", "내용을 입력하세요.");
+        
+          // 1) 스냅샷(롤백용) 저장
+          const snapshot = comments;
+        
+          // 2) 즉시 UI 반영(낙관적)
+          setComments(prev =>
+            prev.map(c =>
+              c.commentId === commentId ? { ...c, body, updatedAt: new Date() } : c
+            )
+          );
+          setEditingId(null);
+          setEditText(prev => ({ ...prev, body: "" }));
+        
+          try {
+            // 3) 서버 반영
+            await api.patch(`comments/${commentId}`, { body });
+            // 4) 굳이 재요청 안 해도 됨(원하는 경우만)
+            // await refetchComments();
+          } catch (err) {
+            // 5) 실패 시 롤백
+            console.error("💬 댓글 수정 실패:", err);
+            setComments(snapshot);
+            Alert.alert("오류", "댓글 수정에 실패했습니다.");
+          }
+        };
+
+  // 댓글 메뉴 열기/닫기 & 편집 시작/취소
+    const openMenu = (c: Comment) => setMenuComment(c);
+    const closeMenu = () => setMenuComment(null);
+    const handleEditPress = (c: Comment) => {
+      closeMenu();
+      setEditingId(c.commentId);
+      setEditText(prev => ({
+        ...prev,
+        body: c.body,                    // ✅ 기존 내용으로 채움
+      }));
+    };
+    const handleEditCancel = () => {
+      setEditingId(null);
+      setEditText(prev => ({ ...prev, body: "" }));
+    };
+
+   const handleEditControl = (text: string) => {
+    console.log("돌아가나 체크하기")
+  setEditText(prev => ({ ...prev, body: text }));
+};
 
   // 댓글 작성 ------------------------------------------------------------------ 업뎃 예정
   // 과연 댓글에 낙관적 업데이트가 필요할까? 내가 댓글을 쓰여진줄알고 착각할수도 있기때문에 아닌것 같다..
@@ -214,22 +279,67 @@ export default function FishDetailScreen() {
   }
 };
 
+const CommentItem = ({ item }: { item: Comment }) => {
+  const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();
+  const d = new Date(item.createdAt);
+  const ts =
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ` +
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
-  const CommentItem = ({ item }: { item: Comment }) => {
-    const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();
-    const d = new Date(item.createdAt);
-    const ts = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    return (
+  const isEditing = editingId === item.commentId;
+  
+
+return (
       <View style={styles.commentRow}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <View style={styles.headerRow}>
-            <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
-            <Text style={styles.timeText}>{ts}</Text>
-          </View>
-          <Text style={styles.bodyText}>{item.body}</Text>
+            <View style={{ flex: 1 }}>
+                {/* 상단 헤더(닉네임·시간·점3개) */}
+              <View style={[styles.headerRow, { alignItems: "center" }]}>
+                <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1 }}>
+                  <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
+                  <Text style={styles.timeText}>{ts}</Text>
+                </View>
+
+                {/* 우측 점3개(작업메뉴) */}
+                <TouchableOpacity
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  onPress={() => openMenu(item)}
+                  accessibilityLabel="댓글 작업 메뉴 열기"
+                >
+                  <Ionicons name="ellipsis-vertical" size={18} color="#666" />
+                </TouchableOpacity>
+              </View>
+               {/* 본문 vs 편집모드 */}
+                  {isEditing ? (
+                    <View style={{ marginTop: 6 }}>
+                      <TextInput
+                        value={editText.body}
+                        onChangeText={handleEditControl}
+                        style={styles.editInput}
+                        placeholder="내용을 수정하세요"
+                        multiline
+                        onFocus={() =>
+                             requestAnimationFrame(() => {scrollRef.current?.scrollToEnd({ animated: true }); }) }
+                      />
+                      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
+                        <TouchableOpacity onPress={handleEditCancel} style={styles.editCancelBtn}>
+                          <Text style={styles.editCancelText}>취소</Text>
+                        </TouchableOpacity>
+                        
+                        <View style={{ width: 8 }} />
+                        <TouchableOpacity
+                          onPress={() => handleEditSubmit(item.commentId, editText.body)}
+                          style={styles.editSaveBtn}
+                        >
+                          <Text style={styles.editSaveText}>저장</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={styles.bodyText}>{item.body}</Text>
+                  )}
         </View>
       </View>
     );
@@ -252,6 +362,7 @@ export default function FishDetailScreen() {
     );
   }
 
+  //여기부터 진짜 코드
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -425,7 +536,7 @@ export default function FishDetailScreen() {
                           value={newComment.body} 
                           onChangeText={(text) =>
                              setNewComment(prev => ({ ...prev, body: text }))} 
-                          multiline 
+                         
                           onFocus={() =>
                              requestAnimationFrame(() => {scrollRef.current?.scrollToEnd({ animated: true }); }) 
                             }/>
@@ -454,6 +565,41 @@ export default function FishDetailScreen() {
                   contentContainerStyle={{ paddingTop: 12 }}
                 />
               )}
+                {/* ▼ 작업메뉴 바텀시트 */}
+  <Modal
+    visible={!!menuComment}
+    transparent
+    animationType="slide"
+    onRequestClose={() => setMenuComment(null)}
+  >
+  <Pressable style={{ flex: 1, backgroundColor: "transparent" }} onPress={() => setMenuComment(null)} />
+    <View style={styles.sheetContainer}>
+      <View style={styles.sheetHandle} />
+
+      <TouchableOpacity
+        style={styles.sheetItem}
+        onPress={() => menuComment && handleEditPress(menuComment)}
+      >
+        <Ionicons name="create-outline" size={20} />
+        <Text style={styles.sheetItemText}>댓글 수정</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.sheetItem}
+        // onPress={() => menuComment && handleDeletePress(menuComment)}
+      >
+        <Ionicons name="trash-outline" size={20} />
+        <Text style={[styles.sheetItemText, { color: "#d33" }]}>댓글 삭제</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.sheetItem, { justifyContent: "center" }]}
+        onPress={() => setMenuComment(null)}
+      >
+        <Text style={styles.sheetCancelText}>취소</Text>
+      </TouchableOpacity>
+    </View>
+  </Modal>
             </View>
           </>
         ) : (
