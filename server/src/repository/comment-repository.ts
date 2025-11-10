@@ -37,3 +37,31 @@ export async function insertComment(user_id: number, fish_id: number, body: stri
   if (rowCount !== 1) throw new DbError("INSERT_FAILED");
   return rows[0]; // { commentId: ... }
 }
+
+export async function vaildUserIdByCommentId(comment_id:number){
+  const sql = `
+                SELECT user_id
+                FROM comments 
+                WHERE comment_id = $1
+              `
+    try {
+        const { rows } = await pool.query(sql, [comment_id]);
+        return rows[0] ?? null;
+      } catch (e) {
+        throw new DbError("Can not find comment_id", e);
+      }
+}
+
+export async function updateComment(comment_id: number, body: string) {
+  const sql = `
+              update comments 
+              set body = $2
+              where comment_id = $1;
+              `
+      try {
+        const { rows } = await pool.query(sql, [comment_id]);
+        return rows[0] ?? null;
+      } catch (e) {
+        throw new DbError("Can not find comment_id OR Can not find body", e);
+      }
+}

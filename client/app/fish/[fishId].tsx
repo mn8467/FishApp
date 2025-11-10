@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
-import * as SecureStore from "expo-secure-store"; 
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import * as SecureStore from "expo-secure-store";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import {
   Modal,
@@ -9,12 +9,10 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   DimensionValue,
   TextInput,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,13 +20,9 @@ import { styles } from "../../components/fishdetailstyle";
 import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useQuery, useQueryClient,useMutation } from "@tanstack/react-query";
-import { UserDTO } from "@/dto/userDTO";
 import api from "@/api/axiosInstance";
 
-const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
-
-// 서버 타입
+// -------- 서버 타입 --------
 interface Fish {
   fishId: number;
   fishName: string;
@@ -51,48 +45,22 @@ interface Fish {
 }
 
 interface Comment {
-  commentId: string; 
+  commentId: string;
   userId: string;
   nickname: string;
   fishId: string;
   body: string;
-  isDeleted: boolean;   //댓글을 가져올때 아니면 필요없음
-  createdAt: Date;      //작성될때 쿼리에서 생성
-  updatedAt: Date;      //작성될때 쿼리에서 생성
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-interface WriteComment{
-    fishId: string;
-    body: string;
-}
-
-interface EditComment{
+interface WriteComment {
   fishId: string;
   body: string;
 }
 
-interface User{
-  userId:string;
-  nickname:string;
-  userRole:string;
-  email:string;
-  userStatus:string;
-}
-
-  const commentsKey = (fishId?: string | number) => ["comments", String(fishId ?? "")];
-
-  // 댓글 정규화
-  const normalizeComment = (raw: any): Comment => ({
-    commentId: String(raw.commentId),
-    userId: String(raw.userId),
-    nickname: raw.nickname ?? "",
-    fishId: String(raw.fishId),
-    body: String(raw.body ?? ""),
-    isDeleted: Boolean(raw.isDeleted),
-    createdAt: new Date(raw.createdAt),
-    updatedAt: new Date(raw.updatedAt),
-  });
-
+// -------- 유틸 --------
 const STAT_MAX = 200;
 const TOTAL_MAX = 1000;
 const LABEL_WIDTH = 88;
@@ -104,12 +72,109 @@ const toWidthPct = (n: number): DimensionValue =>
 const toTotalPct = (n: number): DimensionValue =>
   `${(Math.max(0, Math.min(TOTAL_MAX, n)) / TOTAL_MAX) * 100}%`;
 
+const normalizeComment = (raw: any): Comment => ({
+  commentId: String(raw.commentId),
+  userId: String(raw.userId),
+  nickname: raw.nickname ?? "",
+  fishId: String(raw.fishId),
+  body: String(raw.body ?? ""),
+  isDeleted: Boolean(raw.isDeleted),
+  createdAt: new Date(raw.createdAt),
+  updatedAt: new Date(raw.updatedAt),
+});
+
+// -------- 개별 댓글 컴포넌트(메모 + 로컬 편집 상태) --------
+type CommentItemProps = {
+  item: Comment;
+  isEditing: boolean;
+  onOpenMenu: (c: Comment) => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (commentId: string, nextBody: string) => void;
+  scrollToEnd: () => void;
+};
+const CommentItem = React.memo(function CommentItem({
+  item,
+  isEditing,
+  onOpenMenu,
+  onCancelEdit,
+  onSaveEdit,
+  scrollToEnd,
+}: CommentItemProps) {
+  const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();
+  const d = new Date(item.createdAt);
+  const ts =
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ` +
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  // ✅ 편집 텍스트는 로컬에서 관리 → 부모 리렌더 영향 최소화
+  const [localText, setLocalText] = useState(item.body);
+  useEffect(() => {
+    if (isEditing) setLocalText(item.body); // 편집 시작시 현재 본문으로 초기화
+  }, [isEditing, item.body]);
+
+  return (
+    <View style={styles.commentRow}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{initials}</Text>
+      </View>
+
+      <View style={{ flex: 1 }}>
+        {/* 상단 헤더(닉네임·시간·점3개) */}
+        <View style={[styles.headerRow, { alignItems: "center" }]}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1 }}>
+            <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
+            <Text style={styles.timeText}>{ts}</Text>
+          </View>
+          <TouchableOpacity
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            onPress={() => onOpenMenu(item)}
+            accessibilityLabel="댓글 작업 메뉴 열기"
+          >
+            <Ionicons name="ellipsis-vertical" size={18} color="#666" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 본문 vs 편집모드 */}
+        {isEditing ? (
+          <View style={{ marginTop: 6 }}>
+            <TextInput
+              value={localText}
+              onChangeText={setLocalText}
+              style={styles.editInput}
+              placeholder="내용을 수정하세요"
+              multiline
+              blurOnSubmit={false} // 엔터로 포커스 날아가지 않게
+              onFocus={() => {
+                // 포커스때만 살짝 스크롤(입력 중에는 호출 X)
+                requestAnimationFrame(scrollToEnd);
+              }}
+            />
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
+              <TouchableOpacity onPress={onCancelEdit} style={styles.editCancelBtn}>
+                <Text style={styles.editCancelText}>취소</Text>
+              </TouchableOpacity>
+              <View style={{ width: 8 }} />
+              <TouchableOpacity onPress={() => onSaveEdit(item.commentId, localText)} style={styles.editSaveBtn}>
+                <Text style={styles.editSaveText}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.bodyText}>{item.body}</Text>
+        )}
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+//                 메인 화면
+// ============================================
 export default function FishDetailScreen() {
   const { fishId } = useLocalSearchParams<{ fishId?: string }>();
   const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
   const [fish, setFish] = useState<Fish | null>(null);
   const [loading, setLoading] = useState(true);
-
 
   // 설명 토글
   const [showHpInfo, setShowHpInfo] = useState(false);
@@ -118,36 +183,27 @@ export default function FishDetailScreen() {
   const [showSpecialInfo, setShowSpecialInfo] = useState(false);
   const [showSpeedInfo, setShowSpeedInfo] = useState(false);
 
-  // 🔒 입력창/스크롤 참조
+  // 입력창/스크롤 참조
   const inputRef = useRef<TextInput | null>(null);
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<any>(null);
   const headerHeight = useHeaderHeight();
 
   // 댓글
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
 
-  const [newComment, setNewComment] = useState<WriteComment>({
-    fishId:"",
-    body:""
-  });
+  const [newComment, setNewComment] = useState<WriteComment>({ fishId: "", body: "" });
   const [posting, setPosting] = useState(false);
 
-  // 댓글 수정 기능: 작업메뉴/편집
-const [menuComment, setMenuComment] = useState<Comment | null>(null);
-const [editingId, setEditingId] = useState<string | null>(null);
-const [editText, setEditText] = useState<EditComment>({
-    fishId:"",
-    body:""
-  });
+  // 댓글 수정 관련 (부모는 "누가 편집 중인지"만 가짐)
+  const [menuComment, setMenuComment] = useState<Comment | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // 물고기 정보
   useEffect(() => {
     const fetchFish = async () => {
       try {
-        const res = await axios.get<Fish>(
-          `http://${CURRENT_HOST}:8080/api/fish/${fishId}`
-        );
+        const res = await axios.get<Fish>(`http://${process.env.EXPO_PUBLIC_CURRENT_HOST}:8080/api/fish/${fishId}`);
         setFish(res.data);
       } catch (err) {
         console.error("🐟 Error fetching fish info:", err);
@@ -155,24 +211,18 @@ const [editText, setEditText] = useState<EditComment>({
         setLoading(false);
       }
     };
-    fetchFish();
+    if (fishId) fetchFish();
   }, [fishId]);
 
-
-
-  // 댓글 가져오기
+  // 댓글 가져오기 (초기 + 새 댓글 작성 후)
   useEffect(() => {
     const fetchComments = async () => {
-      
       if (!fishId) {
         return Alert.alert("❌", "잘못된 접근입니다.");
       }
       try {
-        
         setLoadingComments(true);
-        const res = await axios.get<Comment[]>(
-          `http://${CURRENT_HOST}:8080/api/comments/${fishId}`
-        );
+        const res = await axios.get<Comment[]>(`http://${process.env.EXPO_PUBLIC_CURRENT_HOST}:8080/api/comments/${fishId}`);
         const normalized = res.data
           .map(normalizeComment)
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -184,166 +234,76 @@ const [editText, setEditText] = useState<EditComment>({
       }
     };
     fetchComments();
-  }, [posting]);
+  }, [fishId, posting]);
 
-        // 댓글 수정(낙관적 업데이트 적용: 성공 가정 → 실패 시 롤백)
-        const handleEditSubmit = async (commentId: string, nextBody: string) => {
-          const body = nextBody.trim();
-          if (!body) return Alert.alert("알림", "내용을 입력하세요.");
-        
-          // 1) 스냅샷(롤백용) 저장
-          const snapshot = comments;
-        
-          // 2) 즉시 UI 반영(낙관적)
-          setComments(prev =>
-            prev.map(c =>
-              c.commentId === commentId ? { ...c, body, updatedAt: new Date() } : c
-            )
-          );
-          setEditingId(null);
-          setEditText(prev => ({ ...prev, body: "" }));
-        
-          try {
-            // 3) 서버 반영
-            await api.patch(`comments/${commentId}`, { body });
-            // 4) 굳이 재요청 안 해도 됨(원하는 경우만)
-            // await refetchComments();
-          } catch (err) {
-            // 5) 실패 시 롤백
-            console.error("💬 댓글 수정 실패:", err);
-            setComments(snapshot);
-            Alert.alert("오류", "댓글 수정에 실패했습니다.");
-          }
-        };
+  // 댓글 수정(낙관적 업데이트 + 실패시 롤백)
+  const handleEditSubmit = async (commentId: string, nextBody: string) => {
+    const body = nextBody.trim();
+    if (!body) return Alert.alert("알림", "내용을 입력하세요.");
 
-  // 댓글 메뉴 열기/닫기 & 편집 시작/취소
-    const openMenu = (c: Comment) => setMenuComment(c);
-    const closeMenu = () => setMenuComment(null);
-    const handleEditPress = (c: Comment) => {
-      closeMenu();
-      setEditingId(c.commentId);
-      setEditText(prev => ({
-        ...prev,
-        body: c.body,                    // ✅ 기존 내용으로 채움
-      }));
-    };
-    const handleEditCancel = () => {
-      setEditingId(null);
-      setEditText(prev => ({ ...prev, body: "" }));
-    };
+    const snapshot = comments;
+    setComments(prev => prev.map(c => (c.commentId === commentId ? { ...c, body, updatedAt: new Date() } : c)));
+    setEditingId(null);
 
-   const handleEditControl = (text: string) => {
-    console.log("돌아가나 체크하기")
-  setEditText(prev => ({ ...prev, body: text }));
-};
-
-  // 댓글 작성 ------------------------------------------------------------------ 업뎃 예정
-  // 과연 댓글에 낙관적 업데이트가 필요할까? 내가 댓글을 쓰여진줄알고 착각할수도 있기때문에 아닌것 같다..
- const handlePostComment = async () => {
-  // 1) 로그인 체크 (인터셉터가 있어도 UX용 가드)
-  const token = await SecureStore.getItemAsync("accessToken");
-  if (!token) {
-    return Alert.alert("❌", "로그인이 필요합니다.");
-  }
-
-  // 2) 입력 검증
-  const body = newComment.body?.trim();
-  if (!fishId) return Alert.alert("잘못된 접근입니다.");
-  if (!body)   return Alert.alert("알림", "댓글 내용을 입력하세요.");
-
-  setPosting(true);
-
-  // 3) UX: 전송 직후 아래로 스크롤 + 포커스 유지
-  // requestAnimationFrame(() => {
-  //   scrollRef.current?.scrollToEnd({ animated: true });
-  //   setTimeout(() => inputRef.current?.focus(), 0);
-  // });
-
-  try {
-    // ✅ api에 baseURL이 세팅되어 있다면 상대 경로로 호출
-    await api.post(`comments/${fishId}/new`, { body }
-    );
-
-    // 4) 성공 처리: 입력 비우기
-    
-    setNewComment(prev => ({ ...prev, body: "" }));
-
-    Alert.alert("댓글 입력이 완료되었습니다.");
-
-    // 필요 시 목록 갱신: qc.invalidateQueries({ queryKey: ["comments", String(fishId)] });
-  } catch (err: any) {
-    console.error("💬 댓글 등록 실패:", err?.response?.data ?? err);
-    Alert.alert("오류", "댓글 등록에 실패했습니다.");
-  } finally {
-    setPosting(false);
-  }
-};
-
-const CommentItem = ({ item }: { item: Comment }) => {
-  const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();
-  const d = new Date(item.createdAt);
-  const ts =
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ` +
-    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-
-  const isEditing = editingId === item.commentId;
-  
-
-return (
-      <View style={styles.commentRow}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
-            <View style={{ flex: 1 }}>
-                {/* 상단 헤더(닉네임·시간·점3개) */}
-              <View style={[styles.headerRow, { alignItems: "center" }]}>
-                <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1 }}>
-                  <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
-                  <Text style={styles.timeText}>{ts}</Text>
-                </View>
-
-                {/* 우측 점3개(작업메뉴) */}
-                <TouchableOpacity
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  onPress={() => openMenu(item)}
-                  accessibilityLabel="댓글 작업 메뉴 열기"
-                >
-                  <Ionicons name="ellipsis-vertical" size={18} color="#666" />
-                </TouchableOpacity>
-              </View>
-               {/* 본문 vs 편집모드 */}
-                  {isEditing ? (
-                    <View style={{ marginTop: 6 }}>
-                      <TextInput
-                        value={editText.body}
-                        onChangeText={handleEditControl}
-                        style={styles.editInput}
-                        placeholder="내용을 수정하세요"
-                        multiline
-                        onFocus={() =>
-                             requestAnimationFrame(() => {scrollRef.current?.scrollToEnd({ animated: true }); }) }
-                      />
-                      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
-                        <TouchableOpacity onPress={handleEditCancel} style={styles.editCancelBtn}>
-                          <Text style={styles.editCancelText}>취소</Text>
-                        </TouchableOpacity>
-                        
-                        <View style={{ width: 8 }} />
-                        <TouchableOpacity
-                          onPress={() => handleEditSubmit(item.commentId, editText.body)}
-                          style={styles.editSaveBtn}
-                        >
-                          <Text style={styles.editSaveText}>저장</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    <Text style={styles.bodyText}>{item.body}</Text>
-                  )}
-        </View>
-      </View>
-    );
+    try {
+      await api.put(`comments/${fishId}/${commentId}`, { body });
+    } catch (err) {
+      console.error("💬 댓글 수정 실패:", err);
+      setComments(snapshot);
+      Alert.alert("오류", "댓글 수정에 실패했습니다.");
+    }
   };
+
+  // 작업메뉴
+  const openMenu = (c: Comment) => setMenuComment(c);
+  const closeMenu = () => setMenuComment(null);
+
+  // 편집 시작/취소
+  const handleEditPress = (c: Comment) => {
+    closeMenu();
+    setEditingId(c.commentId);
+    // (편집 텍스트는 각 CommentItem 내부 로컬 상태에서 관리)
+  };
+  const handleEditCancel = () => setEditingId(null);
+
+  // 댓글 작성
+  const handlePostComment = async () => {
+    const token = await SecureStore.getItemAsync("accessToken");
+    if (!token) return Alert.alert("❌", "로그인이 필요합니다.");
+
+    const body = newComment.body?.trim();
+    if (!fishId) return Alert.alert("잘못된 접근입니다.");
+    if (!body) return Alert.alert("알림", "댓글 내용을 입력하세요.");
+
+    setPosting(true);
+    try {
+      await api.post(`comments/${fishId}/new`, { body });
+      setNewComment(prev => ({ ...prev, body: "" }));
+      Alert.alert("댓글 입력이 완료되었습니다.");
+    } catch (err: any) {
+      console.error("💬 댓글 등록 실패:", err?.response?.data ?? err);
+      Alert.alert("오류", "댓글 등록에 실패했습니다.");
+    } finally {
+      setPosting(false);
+      // 입력창 다시 포커스 주고 싶으면:
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  };
+
+  // FlatList 렌더러/키 안정화
+  const renderComment = useCallback(
+    ({ item }: { item: Comment }) => (
+      <CommentItem
+        item={item}
+        isEditing={editingId === item.commentId}
+        onOpenMenu={openMenu}
+        onCancelEdit={handleEditCancel}
+        onSaveEdit={handleEditSubmit}
+        scrollToEnd={() => scrollRef.current?.scrollToEnd?.({ animated: true })}
+      />
+    ),
+    [editingId]
+  );
 
   if (loading) {
     return (
@@ -362,259 +322,238 @@ return (
     );
   }
 
-  //여기부터 진짜 코드
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+    // ✅ KeyboardAvoidingView 제거 — KeyboardAwareScrollView만 사용
+    <KeyboardAwareScrollView
+      innerRef={(ref) => (scrollRef.current = ref)}
+      style={styles.container}
+      enableOnAndroid
+      extraScrollHeight={64}
+      extraHeight={Platform.OS === "ios" ? headerHeight : 64}
+      keyboardOpeningTime={0}
+      keyboardShouldPersistTaps="always"  // 🔸 탭 시 키보드 유지
+      keyboardDismissMode="none"          // 🔸 드래그로 키보드 닫힘 방지
+      contentContainerStyle={{ paddingBottom: 24 }}
     >
-            <KeyboardAwareScrollView
-              innerRef={(ref) => (scrollRef.current = ref)}
-              style={styles.container}
-              keyboardShouldPersistTaps="handled"
-              enableOnAndroid
-              extraScrollHeight={64}      // ⬅️ 키보드 위로 좀 더 올려줌
-              extraHeight={64}
-              keyboardOpeningTime={0}
-            >
-        {/* 상단 이미지 */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: fish.imageUrl }} style={styles.image} />
-          <TouchableOpacity style={styles.likeButton}>
-            <Ionicons name="heart-outline" size={28} color="#ff4d4d" />
-          </TouchableOpacity>
-        </View>
+      {/* 상단 이미지 */}
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: fish.imageUrl }} style={styles.image} />
+        <TouchableOpacity style={styles.likeButton}>
+          <Ionicons name="heart-outline" size={28} color="#ff4d4d" />
+        </TouchableOpacity>
+      </View>
 
-        {/* 이름 */}
-        <Text style={styles.name}>{fish.fishName}</Text>
+      {/* 이름 */}
+      <Text style={styles.name}>{fish.fishName}</Text>
 
-        {/* 탭 */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === "info" && styles.activeTab]}
-            onPress={() => setActiveTab("info")}
-          >
-            <Text style={[styles.tabText, activeTab === "info" && styles.activeTabText]}>
-              기본정보
-            </Text>
-          </TouchableOpacity>
+      {/* 탭 */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === "info" && styles.activeTab]}
+          onPress={() => setActiveTab("info")}
+        >
+          <Text style={[styles.tabText, activeTab === "info" && styles.activeTabText]}>기본정보</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === "disease" && styles.activeTab]}
-            onPress={() => setActiveTab("disease")}
-          >
-            <Text style={[styles.tabText, activeTab === "disease" && styles.activeTabText]}>
-              질병
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === "disease" && styles.activeTab]}
+          onPress={() => setActiveTab("disease")}
+        >
+          <Text style={[styles.tabText, activeTab === "disease" && styles.activeTabText]}>질병</Text>
+        </TouchableOpacity>
+      </View>
 
-        {activeTab === "info" ? (
-          <>
-            {/* 스탯 바 */}
-            <View style={styles.statsContainer}>
-              {[
-                { label: "체력", value: fish.hp, desc: fish.hpDesc },
-                { label: "공격력", value: fish.attack, desc: fish.attackDesc },
-                { label: "방어력", value: fish.defense, desc: fish.defenseDesc },
-                { label: "특수능력", value: fish.special, desc: fish.specialDesc },
-                { label: "스피드", value: fish.speed, desc: fish.speedDesc },
-              ].map((stat, idx) => {
-                const barWidth: DimensionValue = toWidthPct(stat.value);
-                const isHP = stat.label === "체력";
-                const isAttack = stat.label === "공격력";
-                const isDefense = stat.label === "방어력";
-                const isSpecial = stat.label === "특수능력";
-                const isSpeed = stat.label === "스피드";
+      {activeTab === "info" ? (
+        <>
+          {/* 스탯 바 */}
+          <View style={styles.statsContainer}>
+            {[
+              { label: "체력", value: fish.hp, desc: fish.hpDesc },
+              { label: "공격력", value: fish.attack, desc: fish.attackDesc },
+              { label: "방어력", value: fish.defense, desc: fish.defenseDesc },
+              { label: "특수능력", value: fish.special, desc: fish.specialDesc },
+              { label: "스피드", value: fish.speed, desc: fish.speedDesc },
+            ].map((stat, idx) => {
+              const barWidth: DimensionValue = toWidthPct(stat.value);
+              const isHP = stat.label === "체력";
+              const isAttack = stat.label === "공격력";
+              const isDefense = stat.label === "방어력";
+              const isSpecial = stat.label === "특수능력";
+              const isSpeed = stat.label === "스피드";
 
-                return (
-                  <View key={idx} style={{ marginBottom: (isHP && showHpInfo) ? 6 : 0 }}>
-                    <View style={styles.statRow}>
-                      <View style={{ width: LABEL_WIDTH, flexDirection: "row", alignItems: "center" }}>
-                        <Text style={styles.statLabel}>{stat.label}</Text>
-                        {isHP && (
-                          <TouchableOpacity onPress={() => setShowHpInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
-                            <Ionicons name="help-circle-outline" size={16} color="#888" />
-                          </TouchableOpacity>
-                        )}
-                        {isAttack && (
-                          <TouchableOpacity onPress={() => setShowAttackInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
-                            <Ionicons name="help-circle-outline" size={16} color="#888" />
-                          </TouchableOpacity>
-                        )}
-                        {isDefense && (
-                          <TouchableOpacity onPress={() => setShowDefenceInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
-                            <Ionicons name="help-circle-outline" size={16} color="#888" />
-                          </TouchableOpacity>
-                        )}
-                        {isSpecial && (
-                          <TouchableOpacity onPress={() => setShowSpecialInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
-                            <Ionicons name="help-circle-outline" size={16} color="#888" />
-                          </TouchableOpacity>
-                        )}
-                        {isSpeed && (
-                          <TouchableOpacity onPress={() => setShowSpeedInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
-                            <Ionicons name="help-circle-outline" size={16} color="#888" />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-
-                      <View style={styles.statBarBackground}>
-                        <View style={[styles.statBar, { width: barWidth }]} />
-                      </View>
-                      <Text style={styles.statValue}>{clamp(stat.value)}</Text>
+              return (
+                <View key={idx} style={{ marginBottom: (isHP && showHpInfo) ? 6 : 0 }}>
+                  <View style={styles.statRow}>
+                    <View style={{ width: LABEL_WIDTH, flexDirection: "row", alignItems: "center" }}>
+                      <Text style={styles.statLabel}>{stat.label}</Text>
+                      {isHP && (
+                        <TouchableOpacity onPress={() => setShowHpInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
+                          <Ionicons name="help-circle-outline" size={16} color="#888" />
+                        </TouchableOpacity>
+                      )}
+                      {isAttack && (
+                        <TouchableOpacity onPress={() => setShowAttackInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
+                          <Ionicons name="help-circle-outline" size={16} color="#888" />
+                        </TouchableOpacity>
+                      )}
+                      {isDefense && (
+                        <TouchableOpacity onPress={() => setShowDefenceInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
+                          <Ionicons name="help-circle-outline" size={16} color="#888" />
+                        </TouchableOpacity>
+                      )}
+                      {isSpecial && (
+                        <TouchableOpacity onPress={() => setShowSpecialInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
+                          <Ionicons name="help-circle-outline" size={16} color="#888" />
+                        </TouchableOpacity>
+                      )}
+                      {isSpeed && (
+                        <TouchableOpacity onPress={() => setShowSpeedInfo(v => !v)} hitSlop={8} style={styles.helpIcon}>
+                          <Ionicons name="help-circle-outline" size={16} color="#888" />
+                        </TouchableOpacity>
+                      )}
                     </View>
 
-                    {isHP && showHpInfo && (
-                      <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
-                        {stat.desc}
-                      </Text>
-                    )}
-                    {isAttack && showAttackInfo && (
-                      <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
-                        {stat.desc}
-                      </Text>
-                    )}
-                    {isDefense && showDefenceInfo && (
-                      <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
-                        {stat.desc}
-                      </Text>
-                    )}
-                    {isSpecial && showSpecialInfo && (
-                      <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
-                        {stat.desc}
-                      </Text>
-                    )}
-                    {isSpeed && showSpeedInfo && (
-                      <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
-                        {stat.desc}
-                      </Text>
-                    )}
+                    <View style={styles.statBarBackground}>
+                      <View style={[styles.statBar, { width: barWidth }]} />
+                    </View>
+                    <Text style={styles.statValue}>{clamp(stat.value)}</Text>
                   </View>
-                );
-              })}
-            </View>
 
-            {/* 총합 */}
-            <View style={[styles.section, { marginTop: 16 }]}>
-              <Text style={styles.sectionTitle}>총합</Text>
-              <View style={styles.statRow}>
-                <View style={{ width: LABEL_WIDTH }}>
-                  <Text style={styles.statLabel}>Total</Text>
+                  {isHP && showHpInfo && (
+                    <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
+                      {stat.desc}
+                    </Text>
+                  )}
+                  {isAttack && showAttackInfo && (
+                    <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
+                      {stat.desc}
+                    </Text>
+                  )}
+                  {isDefense && showDefenceInfo && (
+                    <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
+                      {stat.desc}
+                    </Text>
+                  )}
+                  {isSpecial && showSpecialInfo && (
+                    <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
+                      {stat.desc}
+                    </Text>
+                  )}
+                  {isSpeed && showSpeedInfo && (
+                    <Text style={{ marginLeft: LABEL_WIDTH, marginTop: 4, marginRight: 8, fontSize: 12, color: "#666", lineHeight: 18 }} numberOfLines={4}>
+                      {stat.desc}
+                    </Text>
+                  )}
                 </View>
-                <View style={styles.statBarBackground}>
-                  <View style={[styles.statBar, { width: toTotalPct(fish.totalStats) }]} />
-                </View>
-                <Text style={styles.statValue}>{Math.min(fish.totalStats, TOTAL_MAX)}</Text>
+              );
+            })}
+          </View>
+
+          {/* 총합 */}
+          <View style={[styles.section, { marginTop: 16 }]}>
+            <Text style={styles.sectionTitle}>총합</Text>
+            <View style={styles.statRow}>
+              <View style={{ width: LABEL_WIDTH }}>
+                <Text style={styles.statLabel}>Total</Text>
               </View>
+              <View style={styles.statBarBackground}>
+                <View style={[styles.statBar, { width: toTotalPct(fish.totalStats) }]} />
+              </View>
+              <Text style={styles.statValue}>{Math.min(fish.totalStats, TOTAL_MAX)}</Text>
+            </View>
+          </View>
+
+          {/* 설명 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>설명</Text>
+            <Text style={styles.description}>{fish.description}</Text>
+          </View>
+
+          {/* 기본 정보 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>기본 정보</Text>
+            <Text>과명: {fish.familyName}</Text>
+            <Text>서식지: {fish.habitat}</Text>
+            <Text>몸길이: {fish.bodyLength}</Text>
+          </View>
+
+          {/* 댓글 섹션 */}
+          <View style={[styles.section, { marginTop: 16 }]}>
+            <Text style={styles.sectionTitle}>댓글</Text>
+
+            <View style={styles.inputRow}>
+              <TextInput
+                ref={inputRef}
+                style={styles.input}
+                placeholder="댓글을 입력하세요"
+                value={newComment.body}
+                onChangeText={(text) => setNewComment(prev => ({ ...prev, body: text }))}
+                blurOnSubmit={false}
+                onFocus={() => requestAnimationFrame(() => scrollRef.current?.scrollToEnd?.({ animated: true }))}
+              />
+              <TouchableOpacity
+                style={[styles.sendBtn, posting && { opacity: 0.6 }]}
+                onPress={handlePostComment}
+                disabled={posting}
+              >
+                <Ionicons name="send" size={18} color="#fff" />
+              </TouchableOpacity>
             </View>
 
-            {/* 설명 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>설명</Text>
-              <Text style={styles.description}>{fish.description}</Text>
-            </View>
+            {loadingComments ? (
+              <View style={{ paddingVertical: 12 }}>
+                <ActivityIndicator />
+              </View>
+            ) : comments.length === 0 ? (
+              <Text style={{ color: "#777", marginTop: 8 }}>첫 댓글을 남겨보세요.</Text>
+            ) : (
+              <FlatList
+                data={comments}
+                keyExtractor={(item) => String(item.commentId)}
+                renderItem={renderComment}
+                scrollEnabled={false} // 상위 ScrollView가 스크롤
+                ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                contentContainerStyle={{ paddingTop: 12 }}
+                removeClippedSubviews={false} // 편집 중 잘리는 현상 방지
+                initialNumToRender={10}
+              />
+            )}
 
-            {/* 기본 정보 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>기본 정보</Text>
-              <Text>과명: {fish.familyName}</Text>
-              <Text>서식지: {fish.habitat}</Text>
-              <Text>몸길이: {fish.bodyLength}</Text>
-            </View>
+            {/* ▼ 작업메뉴 바텀시트 */}
+            <Modal visible={!!menuComment} transparent animationType="slide" onRequestClose={() => setMenuComment(null)}>
+              <Pressable style={{ flex: 1, backgroundColor: "transparent" }} onPress={() => setMenuComment(null)} />
+              <View style={styles.sheetContainer}>
+                <View style={styles.sheetHandle} />
 
-            {/* 댓글 섹션 */}
-            <View style={[styles.section, { marginTop: 16 }]}>
-              <Text style={styles.sectionTitle}>댓글</Text>
+                <TouchableOpacity style={styles.sheetItem} onPress={() => menuComment && handleEditPress(menuComment)}>
+                  <Ionicons name="create-outline" size={20} />
+                  <Text style={styles.sheetItemText}>댓글 수정</Text>
+                </TouchableOpacity>
 
-              <View style={styles.inputRow}>
-                <TextInput 
-                          ref={inputRef} 
-                          style={styles.input} 
-                          placeholder="댓글을 입력하세요" 
-                          value={newComment.body} 
-                          onChangeText={(text) =>
-                             setNewComment(prev => ({ ...prev, body: text }))} 
-                         
-                          onFocus={() =>
-                             requestAnimationFrame(() => {scrollRef.current?.scrollToEnd({ animated: true }); }) 
-                            }/>
-                <TouchableOpacity
-                  style={[styles.sendBtn, posting && { opacity: 0.6 }]}
-                  onPress={handlePostComment}
-                  disabled={posting}
-                >
-                  <Ionicons name="send" size={18} color="#fff" />
+                <TouchableOpacity style={styles.sheetItem}>
+                  <Ionicons name="trash-outline" size={20} />
+                  <Text style={[styles.sheetItemText, { color: "#d33" }]}>댓글 삭제</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.sheetItem, { justifyContent: "center" }]} onPress={() => setMenuComment(null)}>
+                  <Text style={styles.sheetCancelText}>취소</Text>
                 </TouchableOpacity>
               </View>
-
-              {loadingComments ? (
-                <View style={{ paddingVertical: 12 }}>
-                  <ActivityIndicator />
-                </View>
-              ) : comments.length === 0 ? (
-                <Text style={{ color: "#777", marginTop: 8 }}>첫 댓글을 남겨보세요.</Text>
-              ) : (
-                <FlatList
-                  data={comments}
-                  keyExtractor={(item) => String(item.commentId)}
-                  renderItem={({ item }) => <CommentItem item={item} />}
-                  scrollEnabled={false} // 상위 ScrollView가 스크롤
-                  ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-                  contentContainerStyle={{ paddingTop: 12 }}
-                />
-              )}
-                {/* ▼ 작업메뉴 바텀시트 */}
-  <Modal
-    visible={!!menuComment}
-    transparent
-    animationType="slide"
-    onRequestClose={() => setMenuComment(null)}
-  >
-  <Pressable style={{ flex: 1, backgroundColor: "transparent" }} onPress={() => setMenuComment(null)} />
-    <View style={styles.sheetContainer}>
-      <View style={styles.sheetHandle} />
-
-      <TouchableOpacity
-        style={styles.sheetItem}
-        onPress={() => menuComment && handleEditPress(menuComment)}
-      >
-        <Ionicons name="create-outline" size={20} />
-        <Text style={styles.sheetItemText}>댓글 수정</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.sheetItem}
-        // onPress={() => menuComment && handleDeletePress(menuComment)}
-      >
-        <Ionicons name="trash-outline" size={20} />
-        <Text style={[styles.sheetItemText, { color: "#d33" }]}>댓글 삭제</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.sheetItem, { justifyContent: "center" }]}
-        onPress={() => setMenuComment(null)}
-      >
-        <Text style={styles.sheetCancelText}>취소</Text>
-      </TouchableOpacity>
-    </View>
-  </Modal>
-            </View>
-          </>
-        ) : (
-          <>
-            {/* 질병 탭 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>질병 정보</Text>
-              <Text style={styles.description}>
-                이 어종은 수온이 낮거나 탁한 물에서 지느러미 부식증, 백점병 등이 발생할 수 있습니다.
-                정기적인 수질 관리와 깨끗한 환경 유지가 중요합니다.
-              </Text>
-            </View>
-          </>
-        )}
-      </KeyboardAwareScrollView>
-    </KeyboardAvoidingView>
+            </Modal>
+          </View>
+        </>
+      ) : (
+        <>
+          {/* 질병 탭 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>질병 정보</Text>
+            <Text style={styles.description}>
+              이 어종은 수온이 낮거나 탁한 물에서 지느러미 부식증, 백점병 등이 발생할 수 있습니다.
+              정기적인 수질 관리와 깨끗한 환경 유지가 중요합니다.
+            </Text>
+          </View>
+        </>
+      )}
+    </KeyboardAwareScrollView>
   );
 }
