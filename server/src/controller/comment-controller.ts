@@ -35,6 +35,7 @@ export const putComment = async(req:Request,res:Response) =>{
 
     if (!access) return res.status(401).json({ message: "NO_TOKEN" });
  
+    console.log("변경된내용: ",content)
     const modified = await modifiedComment(comment_id, content, access);
 
     return res

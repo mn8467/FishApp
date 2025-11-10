@@ -25,10 +25,13 @@ export async function modifiedComment(comment_id:number, content: string, access
     throw new Error("INVALID_USER");
   }
   const validUserId = await vaildUserIdByCommentId(comment_id);
-  
-  if(!(user_id === validUserId)){
+  const realUserId = Number(validUserId);
+  console.log('받은 아이디:',user_id)
+  console.log('댓글 아이디:',realUserId)
+
+  if(!(user_id === realUserId)){
     throw new Error("You don't have the authority to modify comments.") 
   }
   
-    return updateComment(comment_id, content);
+    return updateComment(content, comment_id);
 }

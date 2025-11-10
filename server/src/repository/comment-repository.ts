@@ -46,20 +46,20 @@ export async function vaildUserIdByCommentId(comment_id:number){
               `
     try {
         const { rows } = await pool.query(sql, [comment_id]);
-        return rows[0] ?? null;
+        return rows[0]?.user_id ?? null;
       } catch (e) {
         throw new DbError("Can not find comment_id", e);
       }
 }
 
-export async function updateComment(comment_id: number, body: string) {
+export async function updateComment(body: string,comment_id: number) {
   const sql = `
               update comments 
-              set body = $2
-              where comment_id = $1;
+              set body = $1
+              where comment_id = $2;
               `
       try {
-        const { rows } = await pool.query(sql, [comment_id]);
+        const { rows } = await pool.query(sql, [body,comment_id]);
         return rows[0] ?? null;
       } catch (e) {
         throw new DbError("Can not find comment_id OR Can not find body", e);
