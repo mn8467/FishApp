@@ -15,12 +15,20 @@ import {
   FlatList,
   Platform,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, } from "@expo/vector-icons";
 import { styles } from "../../components/fishdetailstyle";
 import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "@react-navigation/elements";
 import api from "@/api/axiosInstance";
+import AntDesign from "@expo/vector-icons/AntDesign";
+
+
+type CommentView = Comment & {
+  liked: boolean;   // 이 유저가 좋아요 눌렀는지
+  likes_count: number;    // 총 좋아요 수
+};
+
 
 // -------- 서버 타입 --------
 interface Fish {
@@ -105,7 +113,7 @@ const CommentItem = React.memo(function CommentItem({
 
 const created = new Date(item.createdAt);
 const updated = new Date(item.updatedAt);
-
+const [like, setLiked] = useState(false);
 // 수정 여부: 값 비교
 const isEdited = updated.getTime() !== created.getTime();
 
@@ -135,14 +143,21 @@ const ts =
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1 }}>
             <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
             <Text style={styles.timeText}>{ts}</Text>
+          <TouchableOpacity style={[{ opacity: 0.9 }]}>
+          
+          </TouchableOpacity>
+          <Text style={{margin:-5}}>1</Text>
+          
+
              {isEdited ? (
                <View>
-                <Text> 수정됨 </Text>
+                <Text style={{margin:10 }}> 수정됨 </Text>
               </View> 
             ):( 
               <View/>
             )}
           </View>
+
           <TouchableOpacity
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             onPress={() => onOpenMenu(item)}
@@ -258,9 +273,6 @@ export default function FishDetailScreen() {
         const normalized = res.data
           .map(normalizeComment)
           .map(c => {
-            console.log("업데이티드 : ",c.updatedAt);
-            console.log("첫글 :", c.createdAt)
-            console.log("바뀌었니?:",c.isModified)
             const isEdited = c.isModified;
             const shownDate = pickShownDate(c.createdAt, c.updatedAt);
             return{...c, isEdited,shownDate }

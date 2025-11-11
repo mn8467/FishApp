@@ -73,6 +73,7 @@ item: { padding: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: "
     sheetItemText: { fontSize: 16, color: "#222" },
     sheetCancelText: { fontSize: 16, color: "#555", textAlign: "center", fontWeight: "600" },
 
+    
   /* ── 탭 영역 ─────────────────────────────────────────── */
   tabContainer: {
     flexDirection: "row",
