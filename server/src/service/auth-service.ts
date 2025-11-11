@@ -88,7 +88,7 @@ export async function reIssueAccessToken(userId:number) { // user_id 쿼리에 �
       userStatus: userEntity.userStatus
     },
     process.env.JWT_SECRET as string,
-    { expiresIn: "1m" }
+    { expiresIn: "5m" }
   );
   return { accessToken }; // 객체(Object)로 주고받는게 더 깔끔함
 }
@@ -101,21 +101,21 @@ export async function issueTokens(user: LoginResponseDTO) {
       userStatus: user.userStatus
     },
     process.env.JWT_SECRET as string,
-    { expiresIn: "1m" }
+    { expiresIn: "5m" }
   );
 
   // Refresh Token (10분) 수정
   const refreshToken = jwt.sign(
     { userId: user.userId },
     process.env.JWT_SECRET as string, 
-    { expiresIn: "5m" }
+    { expiresIn: "30m" }
   );
 
     // 기존 refresh 토큰 무효화 (rotation 대비)
   await redisClient.del(`refresh:${user.userId}`);
 
   // Redis 저장 (만료 10분)
-  await redisClient.set(`refresh:${user.userId}`, refreshToken, { EX: 60 * 5 });
+  await redisClient.set(`refresh:${user.userId}`, refreshToken, { EX: 60 * 30 });
 
   return { accessToken, refreshToken };
 }

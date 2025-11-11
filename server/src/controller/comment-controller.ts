@@ -37,7 +37,7 @@ export const putComment = async(req:Request,res:Response) =>{
  
     console.log("변경된내용: ",content)
     const modified = await modifiedComment(comment_id, content, access);
-
+    console.log("쿼리에서 받아오는 값 체크", modified)
     return res
       .status(201)
       .json({ success: true, code: "UPDATE_COMMENT_COMPLETE", ...modified });

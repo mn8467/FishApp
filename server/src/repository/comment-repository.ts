@@ -13,7 +13,8 @@ export async function findCommentByFishId(fish_id:number): Promise<ResponseComme
                       c.body,
                       c.is_deleted AS "isDeleted",
                       c.created_at AS "createdAt",
-                      c.updated_at AS "updatedAt"
+                      c.updated_at AS "updatedAt",
+                      c.is_modified AS "isModified"
                     FROM comments c
                     JOIN users u
                       ON u.user_id = c.user_id
@@ -55,7 +56,10 @@ export async function vaildUserIdByCommentId(comment_id:number){
 export async function updateComment(body: string,comment_id: number) {
   const sql = `
               update comments 
-              set body = $1
+              set 
+              body = $1,
+              is_modified = true,
+              updated_at = NOW()
               where comment_id = $2;
               `
       try {

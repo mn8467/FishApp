@@ -53,8 +53,8 @@ interface Comment {
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
+  isModified : boolean;
 }
-
 interface WriteComment {
   fishId: string;
   body: string;
@@ -81,6 +81,7 @@ const normalizeComment = (raw: any): Comment => ({
   isDeleted: Boolean(raw.isDeleted),
   createdAt: new Date(raw.createdAt),
   updatedAt: new Date(raw.updatedAt),
+  isModified: Boolean(raw.isModified)
 });
 
 // -------- 개별 댓글 컴포넌트(메모 + 로컬 편집 상태) --------
@@ -101,10 +102,20 @@ const CommentItem = React.memo(function CommentItem({
   scrollToEnd,
 }: CommentItemProps) {
   const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();
-  const d = new Date(item.createdAt);
-  const ts =
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ` +
-    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+const created = new Date(item.createdAt);
+const updated = new Date(item.updatedAt);
+
+// 수정 여부: 값 비교
+const isEdited = updated.getTime() !== created.getTime();
+
+// ✅ 수정됨이면 updated, 아니면 created
+const shownDate = isEdited ? updated : created;
+
+const ts =
+  `${shownDate.getFullYear()}-${String(shownDate.getMonth() + 1).padStart(2, "0")}-${String(shownDate.getDate()).padStart(2, "0")} ` +
+  `${String(shownDate.getHours()).padStart(2, "0")}:${String(shownDate.getMinutes()).padStart(2, "0")}`;
+
 
   // ✅ 편집 텍스트는 로컬에서 관리 → 부모 리렌더 영향 최소화
   const [localText, setLocalText] = useState(item.body);
@@ -124,6 +135,13 @@ const CommentItem = React.memo(function CommentItem({
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1 }}>
             <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
             <Text style={styles.timeText}>{ts}</Text>
+             {isEdited ? (
+               <View>
+                <Text> 수정됨 </Text>
+              </View> 
+            ):( 
+              <View/>
+            )}
           </View>
           <TouchableOpacity
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -149,14 +167,20 @@ const CommentItem = React.memo(function CommentItem({
                 requestAnimationFrame(scrollToEnd);
               }}
             />
+
+           
+            
             <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
               <TouchableOpacity onPress={onCancelEdit} style={styles.editCancelBtn}>
                 <Text style={styles.editCancelText}>취소</Text>
               </TouchableOpacity>
-              <View style={{ width: 8 }} />
-              <TouchableOpacity onPress={() => onSaveEdit(item.commentId, localText)} style={styles.editSaveBtn}>
+
+              <View style={{flexDirection: "row", justifyContent: "flex-end", marginTop: 8  }} />
+              <TouchableOpacity onPress={() => onSaveEdit(item.commentId, localText)} style={styles.editSaveBtn}> 
                 <Text style={styles.editSaveText}>저장</Text>
               </TouchableOpacity>
+
+              
             </View>
           </View>
         ) : (
@@ -216,17 +240,34 @@ export default function FishDetailScreen() {
 
   // 댓글 가져오기 (초기 + 새 댓글 작성 후)
   useEffect(() => {
-    const fetchComments = async () => {
+
+    // 표시용 날짜 선택 함수 (같으면 created, 다르면 updated)
+  const pickShownDate = (created: Date, updated: Date) =>
+  updated.getTime() !== created.getTime() ? updated : created;
+  
+  const fetchComments = async () => {
+  
       if (!fishId) {
         return Alert.alert("❌", "잘못된 접근입니다.");
+        
       }
       try {
         setLoadingComments(true);
         const res = await axios.get<Comment[]>(`http://${process.env.EXPO_PUBLIC_CURRENT_HOST}:8080/api/comments/${fishId}`);
+        
         const normalized = res.data
           .map(normalizeComment)
+          .map(c => {
+            console.log("업데이티드 : ",c.updatedAt);
+            console.log("첫글 :", c.createdAt)
+            console.log("바뀌었니?:",c.isModified)
+            const isEdited = c.isModified;
+            const shownDate = pickShownDate(c.createdAt, c.updatedAt);
+            return{...c, isEdited,shownDate }
+          })
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         setComments(normalized);
+
       } catch (err) {
         console.error("💬 Error fetching comments:", err);
       } finally {
@@ -247,7 +288,10 @@ export default function FishDetailScreen() {
 
     try {
       await api.put(`comments/${fishId}/${commentId}`, { body });
+      Alert.alert("댓글 수정이 완료되었습니다.");
+      //버튼 왜 두번눌러야되는지 알아내야함
     } catch (err) {
+      //접근 권한이 없는경우 만들어야함
       console.error("💬 댓글 수정 실패:", err);
       setComments(snapshot);
       Alert.alert("오류", "댓글 수정에 실패했습니다.");
@@ -293,6 +337,7 @@ export default function FishDetailScreen() {
   // FlatList 렌더러/키 안정화
   const renderComment = useCallback(
     ({ item }: { item: Comment }) => (
+      
       <CommentItem
         item={item}
         isEditing={editingId === item.commentId}
@@ -331,7 +376,7 @@ export default function FishDetailScreen() {
       extraScrollHeight={64}
       extraHeight={Platform.OS === "ios" ? headerHeight : 64}
       keyboardOpeningTime={0}
-      keyboardShouldPersistTaps="always"  // 🔸 탭 시 키보드 유지
+      keyboardShouldPersistTaps="handled"  // 🔸 탭 시 키보드 유지
       keyboardDismissMode="none"          // 🔸 드래그로 키보드 닫힘 방지
       contentContainerStyle={{ paddingBottom: 24 }}
     >
