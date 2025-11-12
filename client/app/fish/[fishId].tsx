@@ -24,6 +24,7 @@ import api from "@/api/axiosInstance";
 import AntDesign from "@expo/vector-icons/AntDesign";
 
 
+
 type CommentView = Comment & {
   liked: boolean;   // 이 유저가 좋아요 눌렀는지
   likes_count: number;    // 총 좋아요 수
@@ -68,6 +69,8 @@ interface WriteComment {
   body: string;
 }
 
+
+
 // -------- 유틸 --------
 const STAT_MAX = 200;
 const TOTAL_MAX = 1000;
@@ -92,6 +95,7 @@ const normalizeComment = (raw: any): Comment => ({
   isModified: Boolean(raw.isModified)
 });
 
+
 // -------- 개별 댓글 컴포넌트(메모 + 로컬 편집 상태) --------
 type CommentItemProps = {
   item: Comment;
@@ -101,7 +105,44 @@ type CommentItemProps = {
   onSaveEdit: (commentId: string, nextBody: string) => void;
   scrollToEnd: () => void;
 };
-const CommentItem = React.memo(function CommentItem({
+
+
+
+
+// ============================================
+//                 메인 화면
+// ============================================
+export default function FishDetailScreen() {
+  const { fishId } = useLocalSearchParams<{ fishId?: string }>();
+  const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
+  const [fish, setFish] = useState<Fish | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 설명 토글
+  const [showHpInfo, setShowHpInfo] = useState(false);
+  const [showAttackInfo, setShowAttackInfo] = useState(false);
+  const [showDefenceInfo, setShowDefenceInfo] = useState(false);
+  const [showSpecialInfo, setShowSpecialInfo] = useState(false);
+  const [showSpeedInfo, setShowSpeedInfo] = useState(false);
+
+  // 입력창/스크롤 참조
+  const inputRef = useRef<TextInput | null>(null);
+  const scrollRef = useRef<any>(null);
+  const headerHeight = useHeaderHeight();
+
+  // 댓글
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(true);
+
+  const [newComment, setNewComment] = useState<WriteComment>({ fishId: "", body: "" });
+  const [posting, setPosting] = useState(false);
+
+  // 댓글 수정 관련 (부모는 "누가 편집 중인지"만 가짐)
+  const [menuComment, setMenuComment] = useState<Comment | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false); // 연타 방지용 useState
+
+  const CommentItem = React.memo(function CommentItem({
   item,
   isEditing,
   onOpenMenu,
@@ -111,18 +152,54 @@ const CommentItem = React.memo(function CommentItem({
 }: CommentItemProps) {
   const initials = (item.nickname?.trim()?.[0] ?? "U").toUpperCase();
 
+
+
+
 const created = new Date(item.createdAt);
 const updated = new Date(item.updatedAt);
-const [like, setLiked] = useState(false);
 // 수정 여부: 값 비교
 const isEdited = updated.getTime() !== created.getTime();
 
 // ✅ 수정됨이면 updated, 아니면 created
 const shownDate = isEdited ? updated : created;
 
+  // Like 버튼 핸들러
+const [like, setLiked] = useState(false);
+
+const  handleLikeSubmit = async (commentId: string)=>{
+    console.log("commentId :", commentId);
+
+  if (submitting) return;                 // 연타 방지를 위한 코드
+    setSubmitting(true);
+
+  
+  const next = !like;                     // 토글될 상태 UI먼저 업데이트 시켜 사용자 경험 향상시키기 위함
+  setLiked(next);                         
+
+  const endpoint = next ? "like" : "unlike";
+
+
+  try{
+      const res = await api.post(`${endpoint}/${commentId}/request`);
+
+    }catch(err){
+    
+      setLiked(!next);                  // 요청 실패시 롤백
+    }finally{
+          setSubmitting(false);         // 연타 방지 닫아주기
+    }
+
+}
+
+
 const ts =
   `${shownDate.getFullYear()}-${String(shownDate.getMonth() + 1).padStart(2, "0")}-${String(shownDate.getDate()).padStart(2, "0")} ` +
   `${String(shownDate.getHours()).padStart(2, "0")}:${String(shownDate.getMinutes()).padStart(2, "0")}`;
+
+const likeFalse = "https://maeno-demo-s3-v5.s3.ap-northeast-2.amazonaws.com/likeFalse.png";
+const likeTrue = "https://maeno-demo-s3-v5.s3.ap-northeast-2.amazonaws.com/likeTrue.png";
+ 
+const iconlike = like ? likeTrue : likeFalse;
 
 
   // ✅ 편집 텍스트는 로컬에서 관리 → 부모 리렌더 영향 최소화
@@ -143,8 +220,13 @@ const ts =
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1 }}>
             <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
             <Text style={styles.timeText}>{ts}</Text>
-          <TouchableOpacity style={[{ opacity: 0.9 }]}>
           
+          <TouchableOpacity style={[{ opacity: 0.9 }]}
+          onPress ={()=>handleLikeSubmit(item.commentId)}>
+              <Image source={{uri:iconlike}}
+                style={{ width: 14, height: 12 }}   // 반드시 크기 지정
+                resizeMode="contain" 
+              />
           </TouchableOpacity>
           <Text style={{margin:-5}}>1</Text>
           
@@ -205,38 +287,6 @@ const ts =
     </View>
   );
 });
-
-// ============================================
-//                 메인 화면
-// ============================================
-export default function FishDetailScreen() {
-  const { fishId } = useLocalSearchParams<{ fishId?: string }>();
-  const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
-  const [fish, setFish] = useState<Fish | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // 설명 토글
-  const [showHpInfo, setShowHpInfo] = useState(false);
-  const [showAttackInfo, setShowAttackInfo] = useState(false);
-  const [showDefenceInfo, setShowDefenceInfo] = useState(false);
-  const [showSpecialInfo, setShowSpecialInfo] = useState(false);
-  const [showSpeedInfo, setShowSpeedInfo] = useState(false);
-
-  // 입력창/스크롤 참조
-  const inputRef = useRef<TextInput | null>(null);
-  const scrollRef = useRef<any>(null);
-  const headerHeight = useHeaderHeight();
-
-  // 댓글
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loadingComments, setLoadingComments] = useState(true);
-
-  const [newComment, setNewComment] = useState<WriteComment>({ fishId: "", body: "" });
-  const [posting, setPosting] = useState(false);
-
-  // 댓글 수정 관련 (부모는 "누가 편집 중인지"만 가짐)
-  const [menuComment, setMenuComment] = useState<Comment | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   // 물고기 정보
   useEffect(() => {
@@ -324,8 +374,10 @@ export default function FishDetailScreen() {
 
   // 댓글 작성
   const handlePostComment = async () => {
-    const token = await SecureStore.getItemAsync("accessToken");
-    if (!token) return Alert.alert("❌", "로그인이 필요합니다.");
+
+    // 토큰 말고 다른걸로 검사해야함 눌렀을때 401 오면 Alert 띄우도록 하면 될듯
+    // const token = await SecureStore.getItemAsync("accessToken");
+    // if (!token) return Alert.alert("❌", "로그인이 필요합니다.");
 
     const body = newComment.body?.trim();
     if (!fishId) return Alert.alert("잘못된 접근입니다.");

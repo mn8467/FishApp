@@ -1,9 +1,8 @@
 import express, { Request, Response } from "express";
 
-import {UserRequestDTO, UserResponseDTO } from "../dto/user-dto"
+import {UserRequestDTO} from "../dto/user-dto"
 import { registerUser,sendAuthNumber,checkThrottle,checkAuthNumber } from "../service/user-service";
-import {transporter} from "../config/mailcheck";
-import { request } from "http";
+
 
 // 아래 코드 설명  {P},{ResBody},{ReqBody}, {ReqQuery} ==>요건 여기선 없음
 // req: Request< {} ,    {}   , UserRequestDTO>  설명

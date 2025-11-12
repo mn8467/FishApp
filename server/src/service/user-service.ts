@@ -6,7 +6,7 @@ import { transporter } from '../config/mailcheck';
 import redisClient from "../redis";
 
 
-
+// 선언문 함수 : 호이스팅 가능(선언 이전에도 사용가능)
 export async function registerUser(dto: UserRequestDTO){
     const hashedPassword = await bcrypt.hash(dto.password, 10); // 비밀번호 해싱
     const userRaw = {
@@ -22,6 +22,7 @@ export async function registerUser(dto: UserRequestDTO){
     return savedUser
 };
 
+// 애로우 펑션 : 호이스팅 불가능(선언 이후에만 사용가능) ==> 다 만들고 코드 리팩토링해야함
 export const sendAuthNumber = async (email: string): Promise<void> => {
   const authNumber = Math.floor(Math.random() * 888888) + 111111;
 
