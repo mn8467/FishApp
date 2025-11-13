@@ -1,12 +1,10 @@
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
-import { getUserId } from "@/utils/secureStore";
 import { useState,useEffect } from "react";
-import * as SecureStore from "expo-secure-store"; 
-import axios from "axios";
+import * as SecureStore from "expo-secure-store";
 import api from "@/api/axiosInstance";
-import { useQueryClient } from "@tanstack/react-query"; // ✅ 추가
+import { useVerifyTokenUsable } from "@/hooks/useCanUseToken";
 
 
 
@@ -29,7 +27,7 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
   try {
       // ✅ 인터셉터(authUrls) 조건 충족 → Access Token 자동 헤더 추가됨
       console.log("경로타나 확인: front")
-      const res = await api.get("auth/verify"); // 절대경로 추가해줬기 때문에 이렇게 맨앞 슬래시 제외 2025 -09 -30
+      const res = await api.get("auth/verify"); // 절대경로 추가해줬기 때문에 이렇게 맨앞 슬래시 제외 2025 - 09 - 30
       
       if (res.data.success) {
         // 👉 프로필 정보가 잘 불려왔다면 화면 이동

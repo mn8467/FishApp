@@ -60,6 +60,6 @@ export const verifyAuthToken = async (req: Request, res: Response, next:NextFunc
   return res.status(401).json({
     success: false,
     code: "INVALID_TOKEN",
-    message: "유효하지 않은 토큰",
+    message: "유효하지 않은 토큰"
   });
 };

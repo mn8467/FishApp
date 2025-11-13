@@ -34,7 +34,6 @@ export default function Login() {
   const saveToSecureStore = async (key: string, value: string) => {
     try {
       await SecureStore.setItemAsync(key, value);
-      console.log("세이브 잘됐나 로그 확인",SecureStore.setItemAsync)
     } catch (err) {
       console.error(`${key} 저장 실패:`, err);
     }

@@ -224,7 +224,7 @@ const iconlike = like ? likeTrue : likeFalse;
           <TouchableOpacity style={[{ opacity: 0.9 }]}
           onPress ={()=>handleLikeSubmit(item.commentId)}>
               <Image source={{uri:iconlike}}
-                style={{ width: 14, height: 12 }}   // 반드시 크기 지정
+                style={{ width: 14, height: 12 }}   // 반드시 크기 지정 안하면 아이콘 안뜸
                 resizeMode="contain" 
               />
           </TouchableOpacity>

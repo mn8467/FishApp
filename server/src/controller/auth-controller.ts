@@ -9,6 +9,7 @@ export const authToken = async(req:Request, res:Response , next:NextFunction)=>{
       return res.status(200).json({
         success: true,
         code: reissued ? "TOKEN_REISSUED" : "TOKEN_VALID",
+        message: "인증성공!"
       });
   }catch(err){
        console.error("authToken error:", err);

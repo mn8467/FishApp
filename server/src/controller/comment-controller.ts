@@ -18,6 +18,7 @@ export const getCommentsByFishId =  async(req:Request,res:Response,next:NextFunc
     }
 }
 
+// commentId가 파라미터로 옴
 export const putComment = async(req:Request,res:Response) =>{
   try{
       const { commentId } = req.params as { commentId?: string };

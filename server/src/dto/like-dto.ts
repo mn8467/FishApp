@@ -1,8 +1,8 @@
-export interface likeReqDTO{
-    fishId: String;
-    commentId: String;
+export interface LikeReqDTO{
+    fishId: string;
+    commentId: string;
 }
 
-export interface likeResDTO{
-    messege: String;
+export interface LikeResDTO{
+    messege: string;
 }

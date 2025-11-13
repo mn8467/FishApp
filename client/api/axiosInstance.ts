@@ -37,7 +37,21 @@ api.interceptors.response.use(
       console.log("서버 응답 메시지:", res.data);
     return res;
   },
-  (err) => Promise.reject(err)
-);
+
+  async(err) => {
+    const message = err.response?.messege;
+    const status = err.response?.status;
+
+    console.log("에러 메시지 : ",message)
+    console.log("상태코드 :",status)
+  
+  if(status == 401){
+    console.log("이토큰 못써요~ 삭제할게요~");
+    await SecureStore.deleteItemAsync("accessToken");
+    const check = await SecureStore.getItemAsync("accessToken")
+    console.log("토큰 삭제 완료",check) 
+  }
+  return Promise.reject(err)
+});
 
 export default api;
