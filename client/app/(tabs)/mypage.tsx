@@ -1,27 +1,28 @@
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
-import { useState,useEffect } from "react";
+import { useState,useEffect, useContext } from "react";
 import * as SecureStore from "expo-secure-store";
 import api from "@/api/axiosInstance";
 import { useVerifyTokenUsable } from "@/hooks/useCanUseToken";
+import { AuthContext } from "@/utils/providers/StateProvider";
 
 
 
 export default function MypageScreen() {
-
+const {isLoggedIn, setIsLoggedIn} = useContext(AuthContext)
 const [accessToken, setAccessToken] = useState<string | null>(null);
 const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
   
+//로그인 체크용
+  // useEffect(() => {
+  //   const fetchToken = async () => {
+  //     const token = await SecureStore.getItemAsync("accessToken"); 
+  //     setAccessToken(token);
+  //   };
 
-  useEffect(() => {
-    const fetchToken = async () => {
-      const token = await SecureStore.getItemAsync("accessToken"); 
-      setAccessToken(token);
-    };
-
-    fetchToken();
-  }, []);
+  //   fetchToken();
+  // }, []);
 
   const moveProfile = async () => {
   try {
@@ -51,7 +52,7 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
     if (res.data.success) {
       // ✅ 서버 로그아웃 성공 → Access Token 삭제
       await SecureStore.deleteItemAsync("accessToken");
-      setAccessToken(null); // 화면 상태만 초기화
+      setIsLoggedIn(false); // 화면 상태만 초기화
 
 
       Alert.alert("로그아웃 완료!", undefined, [{ text: "확인" }]);
@@ -64,13 +65,13 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
       switch (code) {
         case "REFRESH_TOKEN_NOT_FOUND":
           await SecureStore.deleteItemAsync("accessToken");
-          setAccessToken(null);
+          setIsLoggedIn(false);
           Alert.alert("세션 만료", "이미 로그아웃된 상태입니다.");
           break;
 
         case "INVALID_TOKEN":
           await SecureStore.deleteItemAsync("accessToken");
-          setAccessToken(null);
+          setIsLoggedIn(false);
           Alert.alert("🚨", "토큰이 유효하지 않습니다. 다시 로그인해주세요.");
           break;
 
@@ -79,7 +80,7 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
       }
     } else {
       await SecureStore.deleteItemAsync("accessToken");
-      setAccessToken(null);
+      setIsLoggedIn(false);
       console.error("네트워크 오류:", err);
       Alert.alert("❌", "네트워크 오류 또는 서버 에러 발생");
     }
@@ -101,10 +102,10 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
     </TouchableOpacity>
       
 
-      <ThemedText>내 Access Token: {accessToken ?"있음" : "없음"}</ThemedText>
+      {/* <ThemedText>내 Access Token: {accessToken ?"있음" : "없음"}</ThemedText> */}
       
       {/* ✅ 로그아웃 버튼 */}
-      {accessToken ? (
+      {isLoggedIn ? (
                             // 로그인 상태일 때 로그아웃 버튼을 보여줍니다.
                                   <TouchableOpacity style={styles.logoutbutton} onPress={handleLogout}>
                                     <ThemedText style={styles.buttonText}>로그아웃</ThemedText>

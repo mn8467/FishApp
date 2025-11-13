@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { AuthContext } from "@/utils/providers/StateProvider";
 // import { useQueryClient } from "@tanstack/react-query"; // ✅ 추가
 
 // ✅ 서버 응답 타입 (userData 포함)
@@ -15,6 +16,7 @@ type UserDTO = {
 };
 
 export default function Login() {
+  const {isLoggedIn,setIsLoggedIn} = useContext(AuthContext);
   const router = useRouter();
   const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
   // const qc = useQueryClient(); // ✅ React Query 캐시 핸들
@@ -61,7 +63,7 @@ export default function Login() {
         
         await saveToSecureStore("accessToken", accessToken);
         // qc.setQueryData<UserDTO>(["me"], userData);
-
+        setIsLoggedIn(true)
         // const cached = qc.getQueryData<UserDTO>(["me"]);
         // console.log("ME cached now >>>", cached);
 

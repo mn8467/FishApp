@@ -18,13 +18,13 @@ type AuthContextValue = {
   loading: boolean;
 };
 
-const AuthContext = createContext<AuthContextValue>({
+export const AuthContext = createContext<AuthContextValue>({
   isLoggedIn: false,
   setIsLoggedIn: () => {},
   loading: true,
 });
 
-// 🔹 앱 전체에서 사용할 AuthProvider
+// 앱 전체에서 사용할 AuthProvider
 export function StateProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
