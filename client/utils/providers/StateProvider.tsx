@@ -7,7 +7,6 @@ import React, {
 import * as SecureStore from "expo-secure-store";
 import { getAuth } from "@/api/checktoken";
 
-// 🔹 어디서든 로그인 상태 쓰고 싶을 때
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -26,7 +25,7 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 // 🔹 앱 전체에서 사용할 AuthProvider
-export function stateProvider({ children }: { children: React.ReactNode }) {
+export function StateProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
