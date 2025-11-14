@@ -16,12 +16,14 @@ type AuthContextValue = {
   isLoggedIn: boolean;
   setIsLoggedIn: (v: boolean) => void;
   loading: boolean;
+  setLoading:(v: boolean) => void ; // 반환 타입이 void로 정해져 있다
 };
 
 export const AuthContext = createContext<AuthContextValue>({
   isLoggedIn: false,
   setIsLoggedIn: () => {},
   loading: true,
+  setLoading: ()=>{} // 아무것도 없는 함수로 세팅
 });
 
 // 앱 전체에서 사용할 AuthProvider
@@ -50,7 +52,7 @@ export function StateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, loading }}>
+    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, loading, setLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useContext } from "react";
 import * as SecureStore from "expo-secure-store";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import {
+  TouchableWithoutFeedback,
+  Keyboard,
   Modal,
   Alert,
   Pressable,
@@ -22,6 +24,8 @@ import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "@react-navigation/elements";
 import api from "@/api/axiosInstance";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import { AuthContext } from "@/utils/providers/StateProvider";
+import Snackbar from "@/components/ui/snackbar"; // 🔹 이것만 남기고
 
 
 
@@ -113,6 +117,7 @@ type CommentItemProps = {
 //                 메인 화면
 // ============================================
 export default function FishDetailScreen() {
+  const {isLoggedIn,setIsLoggedIn} = useContext(AuthContext);
   const { fishId } = useLocalSearchParams<{ fishId?: string }>();
   const [activeTab, setActiveTab] = useState<"info" | "disease">("info");
   const [fish, setFish] = useState<Fish | null>(null);
@@ -141,6 +146,16 @@ export default function FishDetailScreen() {
   const [menuComment, setMenuComment] = useState<Comment | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false); // 연타 방지용 useState
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  const showSnackbar = (message: string) => {
+    setSnackbarMessage(message);
+    setSnackbarVisible(true);
+    setTimeout(() => {
+      setSnackbarVisible(false);
+    }, 2000);
+  };
 
   const CommentItem = React.memo(function CommentItem({
   item,
@@ -167,6 +182,12 @@ const shownDate = isEdited ? updated : created;
 const [like, setLiked] = useState(false);
 
 const  handleLikeSubmit = async (commentId: string)=>{
+  
+  if (isLoggedIn !== true) {
+    showSnackbar("로그인이 필요한 기능입니다."); 
+    return;
+  }
+
     console.log("commentId :", commentId);
 
   if (submitting) return;                 // 연타 방지를 위한 코드
@@ -375,9 +396,10 @@ const iconlike = like ? likeTrue : likeFalse;
   // 댓글 작성
   const handlePostComment = async () => {
 
-    // 토큰 말고 다른걸로 검사해야함 눌렀을때 401 오면 Alert 띄우도록 하면 될듯
-    // const token = await SecureStore.getItemAsync("accessToken");
-    // if (!token) return Alert.alert("❌", "로그인이 필요합니다.");
+     if (isLoggedIn !== true) {
+    showSnackbar("로그인이 필요한 기능입니다."); 
+    return;
+  }
 
     const body = newComment.body?.trim();
     if (!fishId) return Alert.alert("잘못된 접근입니다.");
@@ -433,15 +455,17 @@ const iconlike = like ? likeTrue : likeFalse;
 
   return (
     // ✅ KeyboardAvoidingView 제거 — KeyboardAwareScrollView만 사용
+  <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <KeyboardAwareScrollView
       innerRef={(ref) => (scrollRef.current = ref)}
+      enableAutomaticScroll={true}   // ✅ 자동 스크롤 켜기 (기본값이긴 한데 명시해두자)
       style={styles.container}
       enableOnAndroid
-      extraScrollHeight={64}
-      extraHeight={Platform.OS === "ios" ? headerHeight : 64}
+      extraScrollHeight={0}
+      extraHeight={Platform.OS === "ios" ? headerHeight : 0}
       keyboardOpeningTime={0}
-      keyboardShouldPersistTaps="handled"  // 🔸 탭 시 키보드 유지
-      keyboardDismissMode="none"          // 🔸 드래그로 키보드 닫힘 방지
+      keyboardShouldPersistTaps="handled"  // 탭 시 키보드 유지
+      keyboardDismissMode="none"          // 드래그로 키보드 닫힘 방지
       contentContainerStyle={{ paddingBottom: 24 }}
     >
       {/* 상단 이미지 */}
@@ -663,6 +687,8 @@ const iconlike = like ? likeTrue : likeFalse;
           </View>
         </>
       )}
+      <Snackbar visible={snackbarVisible} message={snackbarMessage} bottom={20} />
     </KeyboardAwareScrollView>
+  </TouchableWithoutFeedback>
   );
 }

@@ -1,31 +1,75 @@
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
-import { useState,useEffect, useContext } from "react";
+import { useState,useEffect, useContext, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
 import api from "@/api/axiosInstance";
 import { useVerifyTokenUsable } from "@/hooks/useCanUseToken";
 import { AuthContext } from "@/utils/providers/StateProvider";
+import { getAuth } from "@/api/checktoken";
+import { useFocusEffect } from "@react-navigation/native";
+import Snackbar from "@/components/ui/snackbar"; // 🔹 이것만 남기고
 
 
 
 export default function MypageScreen() {
-const {isLoggedIn, setIsLoggedIn} = useContext(AuthContext)
+const {isLoggedIn, setIsLoggedIn, loading,setLoading} = useContext(AuthContext)
 const [accessToken, setAccessToken] = useState<string | null>(null);
 const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
-  
-//로그인 체크용
-  // useEffect(() => {
-  //   const fetchToken = async () => {
-  //     const token = await SecureStore.getItemAsync("accessToken"); 
-  //     setAccessToken(token);
-  //   };
 
-  //   fetchToken();
-  // }, []);
+  const [snackbarVisible, setSnackbarVisible] = useState(false); // 스낵바에 필요
+  const [snackbarMessage, setSnackbarMessage] = useState(""); // 스낵바에 필요
+
+  const showSnackbar = (message: string) => {
+    setSnackbarMessage(message);
+    setSnackbarVisible(true);
+    setTimeout(() => {
+      setSnackbarVisible(false);
+    }, 2000);
+  };
+
+// 화면 포커스할때마다 실행
+useFocusEffect(
+  useCallback(() => { // resetLogin 재사용만 하면 OK 되니 함수 객체를 계속 생성하지 않아도 됨
+    let isActive = true;
+
+    const resetLogin = async () => {
+      try {
+        setLoading(true);
+        const res = await getAuth();
+
+        if (!isActive) return;
+
+        if (res.code === "TOKEN_VALID") {
+          setIsLoggedIn(true);
+        } else {
+          Alert.alert("로그아웃 되었습니다.")
+          setIsLoggedIn(false);
+        }
+      } catch (e) {
+        if (!isActive) return;
+        setIsLoggedIn(false);
+      } finally {
+        if (!isActive) return;
+        setLoading(false);
+      }
+    };
+
+    resetLogin(); // 화면에 포커스가 들어오는 순간 실행함
+
+    return () => {                    //클린업 함수 사용 이유 : 포커스를 mypage가 아닌 다른 페이지로 옮기게 되면 이미 실행하던 작업을 취소하기 위함. 2025.11.14
+      isActive = false;
+    };
+  }, [setIsLoggedIn, setLoading])
+);
+
 
   const moveProfile = async () => {
   try {
+        if (isLoggedIn !== true) {
+          showSnackbar("로그인이 필요한 기능입니다."); 
+        return;
+  }
       // ✅ 인터셉터(authUrls) 조건 충족 → Access Token 자동 헤더 추가됨
       console.log("경로타나 확인: front")
       const res = await api.get("auth/verify"); // 절대경로 추가해줬기 때문에 이렇게 맨앞 슬래시 제외 2025 - 09 - 30
@@ -87,7 +131,7 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
   }
 };
 
-  const moveLoginPage = async() => {
+const moveLoginPage = async() => {
     router.push("/login")
   }
 
@@ -116,8 +160,10 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
                                     <ThemedText style={styles.buttonText}>로그인</ThemedText>
                                   </TouchableOpacity>
                         )}
-
+        <Snackbar visible={snackbarVisible} message={snackbarMessage} bottom={20} />
     </View>
+  
+    
   );
 }
 
