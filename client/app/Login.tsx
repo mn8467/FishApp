@@ -4,16 +4,7 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { AuthContext } from "@/utils/providers/StateProvider";
-// import { useQueryClient } from "@tanstack/react-query"; // ✅ 추가
 
-// ✅ 서버 응답 타입 (userData 포함)
-type UserDTO = {
-  userId: string;
-  nickname: string;
-  userRole: string;
-  email: string;
-  userStatus: string;
-};
 
 export default function Login() {
   const {isLoggedIn,setIsLoggedIn} = useContext(AuthContext);

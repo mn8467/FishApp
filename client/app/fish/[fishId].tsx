@@ -26,6 +26,8 @@ import api from "@/api/axiosInstance";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { AuthContext } from "@/utils/providers/StateProvider";
 import Snackbar from "@/components/ui/snackbar"; // 🔹 이것만 남기고
+import { Fish } from "@/types/fish";
+import { Comment, WriteComment } from "@/types/comment";
 
 
 
@@ -33,46 +35,6 @@ type CommentView = Comment & {
   liked: boolean;   // 이 유저가 좋아요 눌렀는지
   likes_count: number;    // 총 좋아요 수
 };
-
-
-// -------- 서버 타입 --------
-interface Fish {
-  fishId: number;
-  fishName: string;
-  familyName: string;
-  habitat: string;
-  bodyLength: string;
-  description: string;
-  imageUrl: string;
-  totalStats: number;
-  hp: number;
-  hpDesc: string;
-  attack: number;
-  attackDesc: string;
-  defense: number;
-  defenseDesc: string;
-  special: number;
-  specialDesc: string;
-  speed: number;
-  speedDesc: string;
-}
-
-interface Comment {
-  commentId: string;
-  userId: string;
-  nickname: string;
-  fishId: string;
-  body: string;
-  isDeleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  isModified : boolean;
-}
-interface WriteComment {
-  fishId: string;
-  body: string;
-}
-
 
 
 // -------- 유틸 --------
@@ -146,8 +108,8 @@ export default function FishDetailScreen() {
   const [menuComment, setMenuComment] = useState<Comment | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false); // 연타 방지용 useState
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarVisible, setSnackbarVisible] = useState(false); // 스낵바에 필요
+  const [snackbarMessage, setSnackbarMessage] = useState(""); // 스낵바에 필요
 
   const showSnackbar = (message: string) => {
     setSnackbarMessage(message);
