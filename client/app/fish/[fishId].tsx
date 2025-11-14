@@ -163,7 +163,7 @@ const  handleLikeSubmit = async (commentId: string)=>{
 
 
   try{
-      const res = await api.post(`${endpoint}/${commentId}/request`);
+      const res = await api.post(`request/${endpoint}/${commentId}`);
 
     }catch(err){
     

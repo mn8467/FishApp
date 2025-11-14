@@ -5,8 +5,7 @@ import loginRouter from "./routes/auth-routes";
 import fishRouter from "./routes/fish-routes";
 import commentRouter from "./routes/comment-routes";
 import passport from "./config/passport";
-
-
+import likeRouter from "./routes/like-routes"
 const app = express();
 const port = 8080;
 
@@ -35,6 +34,9 @@ app.use('/api/comments',commentRouter)
 app.use('/api/users',userRouter)
 app.use('/api/auth',loginRouter) // 요청시 userId, access token 발급
 app.use('/api/fish',fishRouter )
+app.use('/api/request', likeRouter)
+
+
 //jwt 테스트 코드
 app.get('/api/protected',
   passport.authenticate('jwt', { session: false }),

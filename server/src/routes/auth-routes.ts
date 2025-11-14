@@ -12,5 +12,4 @@ router.post("/logout", authLogout);
 router.get("/verify", verifyAuthToken, authToken);
 
 
-
 export default router;
