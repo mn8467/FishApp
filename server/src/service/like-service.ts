@@ -8,6 +8,8 @@ export async function updateLike(user_id:number, comment_id:number):Promise<bool
     return checkInsert;
 
     }catch(err){
+        console.log(err)
+
         throw new Error("REFRESH_INVALID");
     }
     

@@ -5,14 +5,14 @@ import { updateLike } from "../service/like-service";
 import { extractUserId } from "../service/auth-service";
 
 // 트러블 슈팅 꼼꼼히 공부하기 위해만든 모범 표본
-export async function LikeComment(req:Request, res:Response): Promise<void>{
+export const LikeComment = async(req:Request,res:Response) =>{
     try{                                                    //시작하자마자 try구문으로 바로 직행 2025-11-14
 
-      const  commentIdRaw  = req.params as { commentId?: string };
-        const commentId = Number(commentIdRaw);
+        const {commentId}  = req.params as { commentId?: string };
+        const comment_id = Number(commentId);
                                                          //  +
-        if (!commentIdRaw || Number.isNaN(commentId)) {  // 만약 commentId가 NaN 이라면 어떤 원본 값이 넘어왔는지 알아야하기 때문
-          console.warn("[LikeComment] Invalid commentId:", commentIdRaw); // 트러블 슈팅 로그를 신경쓰기 위함!! 2025 -11 -14
+        if (!commentId || Number.isNaN(commentId)) {  // 만약 commentId가 NaN 이라면 어떤 원본 값이 넘어왔는지 알아야하기 때문
+          console.warn("[LikeComment] Invalid commentId:", commentId); // 트러블 슈팅 로그를 신경쓰기 위함!! 2025 -11 -14
           res.status(400).json({ message: "INVALID_COMMENT_ID" });
           return;
         }
@@ -26,7 +26,7 @@ export async function LikeComment(req:Request, res:Response): Promise<void>{
         const access = raw.slice(7); //토큰만 access 변수에 넣음
         
         const userId = await extractUserId(access);
-        const created = await updateLike(userId, commentId);
+        const created = await updateLike(userId, comment_id);
 
           if (!created) {
                 // 이미 좋아요 누른 상태일때..
