@@ -5,20 +5,34 @@ import { DbError } from "../utils/error";
 //상세 물고기 페이지의 코멘트 => fish_id 는 1을 조건으로 함
 export async function findCommentByFishId(fish_id:number): Promise<ResponseCommentDTO[]> {
     const sql = `
-                    SELECT
-                      c.comment_id AS "commentId",
-                      c.user_id    AS "userId",
+                      SELECT
+                        c.comment_id AS "commentId",
+                        c.user_id    AS "userId",
                         u.nickname   AS "nickname",
-                      c.fish_id    AS "fishId",
-                      c.body,
-                      c.is_deleted AS "isDeleted",
-                      c.created_at AS "createdAt",
-                      c.updated_at AS "updatedAt",
-                      c.is_modified AS "isModified"
-                    FROM comments c
-                    JOIN users u
-                      ON u.user_id = c.user_id
-                    WHERE c.fish_id = $1;
+                        c.fish_id    AS "fishId",
+                        c.body,
+                        c.is_deleted AS "isDeleted",
+                        c.created_at AS "createdAt",
+                        c.updated_at AS "updatedAt",
+                        c.is_modified AS "isModified",
+                        COUNT(k.comment_id) AS "likeCount"     -- ✅ 좋아요 개수
+                      FROM comments c
+                      JOIN users u
+                        ON u.user_id = c.user_id
+                      LEFT JOIN comment_likes k               -- ✅ LEFT JOIN이면 좋아요 0개도 포함
+                        ON c.comment_id = k.comment_id
+                      WHERE c.fish_id = $1
+                      GROUP BY
+                        c.comment_id,
+                        c.user_id,
+                        u.nickname,
+                        c.fish_id,
+                        c.body,
+                        c.is_deleted,
+                        c.created_at,
+                        c.updated_at,
+                        c.is_modified
+                      ORDER BY c.created_at DESC;
                 `
     try {
     const { rows } = await pool.query<ResponseCommentDTO>(sql, [fish_id]);

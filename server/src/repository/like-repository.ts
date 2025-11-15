@@ -14,7 +14,6 @@ export async function insertLikeComment(user_id:number, comment_id:number){
   try {
     const { rows } = await pool.query(sql, [user_id, comment_id]);
     // rows.length === 1이면 생성됨, 0이면 생성안됨 ==> 데이터 잘 들어갔는지 확인
-    console.log("에러나는 이유: ",rows.length)
     return rows.length > 0;
   } catch (e) {
     throw new DbError("Failed to insert comment like", e);

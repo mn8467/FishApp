@@ -58,7 +58,8 @@ const normalizeComment = (raw: any): Comment => ({
   isDeleted: Boolean(raw.isDeleted),
   createdAt: new Date(raw.createdAt),
   updatedAt: new Date(raw.updatedAt),
-  isModified: Boolean(raw.isModified)
+  isModified: Boolean(raw.isModified),
+  likeCount: String(raw.likeCount)
 });
 
 
@@ -142,6 +143,9 @@ const shownDate = isEdited ? updated : created;
 
   // Like 버튼 핸들러
 const [like, setLiked] = useState(false);
+const [localLikeCount, setLocalLikeCount] = useState(
+  Number(item.likeCount) || 0
+);
 
 const  handleLikeSubmit = async (commentId: string)=>{
   
@@ -150,25 +154,30 @@ const  handleLikeSubmit = async (commentId: string)=>{
     return;
   }
 
-    console.log("commentId :", commentId);
 
   if (submitting) return;                 // 연타 방지를 위한 코드
     setSubmitting(true);
 
   
   const next = !like;                     // 토글될 상태 UI먼저 업데이트 시켜 사용자 경험 향상시키기 위함
+  const delta = next ? 1 : -1;
+
   setLiked(next);                         
 
   const endpoint = next ? "like" : "unlike";
+  setLocalLikeCount(prev => prev + delta);
 
 
   try{
       const res = await api.post(`request/${endpoint}/${commentId}`);
-
+      
     }catch(err){
     
       setLiked(!next);                  // 요청 실패시 롤백
+      setLocalLikeCount(prev => prev - delta);
+
     }finally{
+          
           setSubmitting(false);         // 연타 방지 닫아주기
     }
 
@@ -211,7 +220,7 @@ const iconlike = like ? likeTrue : likeFalse;
                 resizeMode="contain" 
               />
           </TouchableOpacity>
-          <Text style={{margin:-5}}>1</Text>
+          <Text style={{margin:-5}}>{localLikeCount}</Text>
           
 
              {isEdited ? (
