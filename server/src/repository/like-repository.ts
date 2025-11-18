@@ -19,3 +19,21 @@ export async function insertLikeComment(user_id:number, comment_id:number){
     throw new DbError("Failed to insert comment like", e);
   }
 }
+
+// 좋아요 한번더 누르면 삭제하는 기능
+export async function deleteLikeComment(user_id:number, comment_id:number){
+    const sql = `
+                    Delete 
+                    from comment_likes 
+                    where user_id = $1 and comment_id = $2
+                `;
+ try {
+    const result = await pool.query(sql, [user_id, comment_id]);
+    const rowCount = result.rowCount ?? 0;  // null이면 0으로 처리
+
+   
+    return rowCount > 0;  // 삭제된 행이 1개 이상이면 true, 없으면 false
+  } catch (e) {
+    throw new DbError("Failed to delete comment like", e);
+  }
+}

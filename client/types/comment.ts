@@ -8,6 +8,7 @@ export interface Comment {
   createdAt: Date;
   updatedAt: Date;
   isModified : boolean;
+  likeCount: string;
 }
 
 export interface WriteComment {

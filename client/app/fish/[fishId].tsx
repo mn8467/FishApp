@@ -193,7 +193,6 @@ const likeTrue = "https://maeno-demo-s3-v5.s3.ap-northeast-2.amazonaws.com/likeT
  
 const iconlike = like ? likeTrue : likeFalse;
 
-
   // ✅ 편집 텍스트는 로컬에서 관리 → 부모 리렌더 영향 최소화
   const [localText, setLocalText] = useState(item.body);
   useEffect(() => {
@@ -330,6 +329,9 @@ const iconlike = like ? likeTrue : likeFalse;
     };
     fetchComments();
   }, [fishId, posting]);
+
+
+
 
   // 댓글 수정(낙관적 업데이트 + 실패시 롤백)
   const handleEditSubmit = async (commentId: string, nextBody: string) => {
