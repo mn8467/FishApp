@@ -1,7 +1,11 @@
-import { ResponseCommentDTO } from "../dto/comment-dto";
-import { findCommentByFishId, insertComment, updateComment, vaildUserIdByCommentId } from "../repository/comment-repository";
+import { ResponseCommentDTO, UserWriteCommentDTO } from "../dto/comment-dto";
+import { findCommentByFishId, findCommentByFishIdForUserWrited, insertComment, updateComment, vaildUserIdByCommentId } from "../repository/comment-repository";
 import { extractUserId } from "./auth-service";
 
+export async function listCommentByUserIdAndFishId(fish_id:number, user_id:number):Promise<UserWriteCommentDTO[]>{
+  const rows = await findCommentByFishIdForUserWrited(fish_id,user_id);
+  return rows;
+}
 
 export async function listCommentByFishId(fish_id:number): Promise<ResponseCommentDTO[]>{
     const rows = await findCommentByFishId(fish_id);

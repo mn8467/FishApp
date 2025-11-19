@@ -1,18 +1,32 @@
 import { Response,Request,NextFunction } from "express";
-import { listCommentByFishId, modifiedComment, writeComment } from "../service/comment-service";
+import { listCommentByFishId, listCommentByUserIdAndFishId, modifiedComment, writeComment } from "../service/comment-service";
 
 export const getCommentsByFishId =  async(req:Request,res:Response,next:NextFunction) =>{
     try{
+        const user_id = (req as any).user?.user_id ?? null;
+        console.log("user_id 체크 : ", user_id)
         const fish_id = Number(req.params.fishId);
             if (!Number.isInteger(fish_id) || fish_id <= 0) {
               return res.status(400).json({ message: "fishId must be a positive integer" });
             }
 
-        const comment = await listCommentByFishId(fish_id)
-            if (!comment) {
+
+            if(user_id){
+              const comment = await listCommentByUserIdAndFishId(fish_id,user_id);
+              console.log("userId 존재할 경우 로직!!", comment)
+              return res.status(200).json(comment);
+            }else{
+              const comment = await listCommentByFishId(fish_id)
+              
+              if (!comment) {
               return res.status(404).json({ message: "작성된 댓글이 존재하지않습니다." });
+              }
+
+              console.log("userId 존재하지 않을 경우 로직!!", comment)
+
+              return res.status(200).json(comment);
             }
-      res.status(200).json(comment);
+
     }catch (e){
         next(e);
     }

@@ -59,7 +59,8 @@ const normalizeComment = (raw: any): Comment => ({
   createdAt: new Date(raw.createdAt),
   updatedAt: new Date(raw.updatedAt),
   isModified: Boolean(raw.isModified),
-  likeCount: String(raw.likeCount)
+  likeCount: String(raw.likeCount),
+  liked: Boolean(raw.liked)
 });
 
 
@@ -147,6 +148,8 @@ const [localLikeCount, setLocalLikeCount] = useState(
   Number(item.likeCount) || 0
 );
 
+
+
 const  handleLikeSubmit = async (commentId: string)=>{
   
   if (isLoggedIn !== true) {
@@ -199,6 +202,11 @@ const iconlike = like ? likeTrue : likeFalse;
     if (isEditing) setLocalText(item.body); // 편집 시작시 현재 본문으로 초기화
   }, [isEditing, item.body]);
 
+  useEffect(() => {
+  setLiked(item.liked);
+  setLocalLikeCount(Number(item.likeCount) || 0);
+}, [item.liked, item.likeCount]);
+
   return (
     <View style={styles.commentRow}>
       <View style={styles.avatar}>
@@ -211,7 +219,6 @@ const iconlike = like ? likeTrue : likeFalse;
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1 }}>
             <Text style={styles.nameText}>{item.nickname || `User#${item.userId}`}</Text>
             <Text style={styles.timeText}>{ts}</Text>
-          
           <TouchableOpacity style={[{ opacity: 0.9 }]}
           onPress ={()=>handleLikeSubmit(item.commentId)}>
               <Image source={{uri:iconlike}}
@@ -309,7 +316,7 @@ const iconlike = like ? likeTrue : likeFalse;
       }
       try {
         setLoadingComments(true);
-        const res = await axios.get<Comment[]>(`http://${process.env.EXPO_PUBLIC_CURRENT_HOST}:8080/api/comments/${fishId}`);
+        const res = await api.get<Comment[]>(`http://${process.env.EXPO_PUBLIC_CURRENT_HOST}:8080/api/comments/${fishId}`);
         
         const normalized = res.data
           .map(normalizeComment)

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { reIssueAccessIfValid, verifyAccessToken } from "../service/auth-service";
+import { extractUserId, reIssueAccessIfValid, verifyAccessToken } from "../service/auth-service";
 
 // 헤더로 받은 Access Token 인가
 export const verifyAuthToken = async (req: Request, res: Response, next:NextFunction) => {
@@ -63,3 +63,28 @@ export const verifyAuthToken = async (req: Request, res: Response, next:NextFunc
     message: "유효하지 않은 토큰"
   });
 };
+
+// 트러블 슈팅 보완필요
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
+  console.log("옵셔널 어쓰 미들웨어 사용 경로 체크")
+  const raw = req.headers["authorization"];
+  const token = typeof raw === "string" && raw.startsWith("Bearer ") ? raw.slice(7): "";
+
+
+  if (!token) {
+    // 🔹 손님 모드 (로그인 안 한 상태)
+    (req as any).user = null;
+    return next();          // ⬅⬅⬅ 여기서 바로 종료되고 아래로 안 내려감
+  }
+
+  try {
+      const userId = await extractUserId(token);
+      const user_id = Number(userId);
+
+    (req as any).user = {user_id}; 
+  } catch (e) {
+    (req as any).user = null;
+  }
+
+  next();
+}

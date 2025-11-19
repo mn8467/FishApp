@@ -9,6 +9,7 @@ export interface Comment {
   updatedAt: Date;
   isModified : boolean;
   likeCount: string;
+  liked: boolean;
 }
 
 export interface WriteComment {
