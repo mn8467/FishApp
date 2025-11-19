@@ -10,6 +10,7 @@ import { getAuth } from "@/api/checktoken";
 import { useFocusEffect } from "@react-navigation/native";
 import Snackbar from "@/components/ui/snackbar"; // 🔹 이것만 남기고
 import { styles } from "@/components/styles/mypagestyle";
+import { SnackbarAction } from "@/types/snackbar";
 
 
 
@@ -20,12 +21,29 @@ const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
 
   const [snackbarVisible, setSnackbarVisible] = useState(false); // 스낵바에 필요
   const [snackbarMessage, setSnackbarMessage] = useState(""); // 스낵바에 필요
+  const [snackbarAction, setSnackbarAction] = useState<SnackbarAction | undefined>(undefined);
 
-  const showSnackbar = (message: string) => {
+    const showPlainSnackbar = (message: string) => {
     setSnackbarMessage(message);
+    setSnackbarAction(undefined);     // 버튼 없음!
     setSnackbarVisible(true);
+  
     setTimeout(() => {
       setSnackbarVisible(false);
+    }, 2000);
+  };
+  
+  const showLoginSnackbar = (message = "") => {
+    setSnackbarMessage(message);
+    setSnackbarAction({
+      label: "로그인",
+      onPress: () => router.push("/login"),
+    });
+    setSnackbarVisible(true);
+  
+    setTimeout(() => {
+      setSnackbarVisible(false);
+      setSnackbarAction(undefined); // 닫힐 때 액션도 초기화
     }, 2000);
   };
 
@@ -44,7 +62,7 @@ useFocusEffect(
         if (res.code === "TOKEN_VALID") {
           setIsLoggedIn(true);
         } else {
-          Alert.alert("로그아웃 되었습니다.")
+          Alert.alert("입력 시간이 초과되어 자동으로 로그아웃됩니다. 다시 로그인 해주세요.")
           setIsLoggedIn(false);
         }
       } catch (e) {
@@ -68,7 +86,7 @@ useFocusEffect(
   const moveProfile = async () => {
   try {
         if (isLoggedIn !== true) {
-          showSnackbar("로그인이 필요한 기능입니다."); 
+          showLoginSnackbar("로그인이 필요한 기능입니다."); 
         return;
   }
       // ✅ 인터셉터(authUrls) 조건 충족 → Access Token 자동 헤더 추가됨
@@ -100,7 +118,7 @@ useFocusEffect(
       setIsLoggedIn(false); // 화면 상태만 초기화
 
 
-      Alert.alert("로그아웃 완료!", undefined, [{ text: "확인" }]);
+      showPlainSnackbar("로그아웃 완료!");
     }
   } catch (err: any) {
     if (err.response) {
@@ -161,7 +179,19 @@ const moveLoginPage = async() => {
                                     <ThemedText style={styles.buttonText}>로그인</ThemedText>
                                   </TouchableOpacity>
                         )}
-        <Snackbar visible={snackbarVisible} message={snackbarMessage} bottom={20} />
+                  <Snackbar
+                    visible={snackbarVisible}
+                    message={snackbarMessage}
+                    bottom={20}
+                    action={
+                      snackbarMessage === "로그인이 필요한 기능입니다."
+                        ? {
+                            label: "로그인",
+                            onPress: () => router.push("/login"),
+                          }
+                        : undefined
+                    }
+                  />
     </View>
   
     

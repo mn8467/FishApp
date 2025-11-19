@@ -4,13 +4,27 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { AuthContext } from "@/utils/providers/StateProvider";
-
+import { SnackbarAction } from "@/types/snackbar";
+import Snackbar from "@/components/ui/snackbar";
 
 export default function Login() {
   const {isLoggedIn,setIsLoggedIn} = useContext(AuthContext);
   const router = useRouter();
   const CURRENT_HOST = process.env.EXPO_PUBLIC_CURRENT_HOST;
-  // const qc = useQueryClient(); // ✅ React Query 캐시 핸들
+
+  const [snackbarVisible, setSnackbarVisible] = useState(false); // 스낵바에 필요
+  const [snackbarMessage, setSnackbarMessage] = useState(""); // 스낵바에 필요
+  const [snackbarAction, setSnackbarAction] = useState<SnackbarAction | undefined>(undefined);
+  
+    const showPlainSnackbar = (message: string) => {
+    setSnackbarMessage(message);
+    setSnackbarAction(undefined);     // 버튼 없음!
+    setSnackbarVisible(true);
+  
+    setTimeout(() => {
+      setSnackbarVisible(false);
+    }, 2000);
+    };
 
   const [form, setForm] = useState({
     userName: "",
@@ -34,7 +48,7 @@ export default function Login() {
 
   const handleSubmit = async () => {
     if (!form.userName || !form.password) {
-      Alert.alert("⚠️", "아이디와 비밀번호를 입력해주세요.");
+      showPlainSnackbar("아이디와 비밀번호를 입력해주세요.");
       return;
     }
 
@@ -49,14 +63,11 @@ export default function Login() {
 
       if (res.data.success) {
         const accessToken = res.data.accessToken;
-        // const userData = res.data.userData;
-        // console.log("유저데이터 가져오는지 확인",userData)
+
         
         await saveToSecureStore("accessToken", accessToken);
-        // qc.setQueryData<UserDTO>(["me"], userData);
         setIsLoggedIn(true)
-        // const cached = qc.getQueryData<UserDTO>(["me"]);
-        // console.log("ME cached now >>>", cached);
+
 
         Alert.alert("로그인 성공!", undefined, [
           {
@@ -100,6 +111,19 @@ export default function Login() {
       <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? "로그인 중..." : "로그인"}</Text>
       </TouchableOpacity>
+                        <Snackbar
+                          visible={snackbarVisible}
+                          message={snackbarMessage}
+                          bottom={20}
+                          action={
+                            snackbarMessage === "로그인이 필요한 기능입니다."
+                              ? {
+                                  label: "로그인",
+                                  onPress: () => router.push("/login"),
+                                }
+                              : undefined
+                          }
+                        />
     </View>
   );
 }

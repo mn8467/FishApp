@@ -3,21 +3,9 @@ import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity,Animated, Easing } from "react-native";
 import { snackbarStyle } from "../styles/snackberstyle";
 import { router } from "expo-router";
+import { SnackBarProps } from "@/types/snackbar";
 
-//Props 받을 타입
-type Props = {
-  visible: boolean;
-  message: string;
-  bottom?: number;
-
-};
-
-
-const goLogin = () => {
-    router.push("/login");
-  };
-
-export default function Snackbar({ visible, message, bottom }: Props) {
+export default function Snackbar({ visible, message, bottom, action }: SnackBarProps) {
      // 0 ~ 1 사이 값으로 애니메이션 제어
   const [anim] = useState(new Animated.Value(0));
   const [shouldRender, setShouldRender] = useState(false);
@@ -46,7 +34,7 @@ useEffect(() => {
         }
       });
     }
-  }, [visible, anim]);
+  }, [visible]);
 
   if (!shouldRender) return null;
 
@@ -81,9 +69,18 @@ useEffect(() => {
           {message}
         </Text>
 
-        <TouchableOpacity onPress={goLogin} style={{ marginLeft: "auto" }}>
+        {/* <TouchableOpacity onPress={goLogin} style={{ marginLeft: "auto" }}>
           <Text style={{ color: "#ff7300ff" }}>로그인</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+        
+        {action && (
+          <TouchableOpacity
+            onPress={action.onPress}
+            style={{ marginLeft: "auto" }}
+          >
+            <Text style={{ color: "#ff7300ff" }}>{action.label}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </Animated.View>
   );

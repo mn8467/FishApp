@@ -20,7 +20,7 @@ import {
 import { Ionicons, } from "@expo/vector-icons";
 import { styles } from "../../components/fishdetailstyle";
 import axios from "axios";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "@react-navigation/elements";
 import api from "@/api/axiosInstance";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -28,6 +28,7 @@ import { AuthContext } from "@/utils/providers/StateProvider";
 import Snackbar from "@/components/ui/snackbar"; // 🔹 이것만 남기고
 import { Fish } from "@/types/fish";
 import { Comment, WriteComment } from "@/types/comment";
+import { SnackbarAction } from "@/types/snackbar";
 
 
 
@@ -110,16 +111,35 @@ export default function FishDetailScreen() {
   const [menuComment, setMenuComment] = useState<Comment | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false); // 연타 방지용 useState
-  const [snackbarVisible, setSnackbarVisible] = useState(false); // 스낵바에 필요
-  const [snackbarMessage, setSnackbarMessage] = useState(""); // 스낵바에 필요
 
-  const showSnackbar = (message: string) => {
-    setSnackbarMessage(message);
-    setSnackbarVisible(true);
-    setTimeout(() => {
-      setSnackbarVisible(false);
-    }, 2000);
-  };
+  //스낵바 관련
+  const [snackbarVisible, setSnackbarVisible] = useState(false); 
+  const [snackbarMessage, setSnackbarMessage] = useState(""); 
+  const [snackbarAction, setSnackbarAction] = useState<SnackbarAction | undefined>(undefined);
+
+  const showPlainSnackbar = (message: string) => {
+  setSnackbarMessage(message);
+  setSnackbarAction(undefined);     // 버튼 없음!
+  setSnackbarVisible(true);
+
+  setTimeout(() => {
+    setSnackbarVisible(false);
+  }, 2000);
+};
+
+const showLoginSnackbar = (message = "로그인이 필요한 기능입니다.") => {
+  setSnackbarMessage(message);
+  setSnackbarAction({
+    label: "로그인",
+    onPress: () => router.push("/login"),
+  });
+  setSnackbarVisible(true);
+
+  setTimeout(() => {
+    setSnackbarVisible(false);
+    setSnackbarAction(undefined); // 닫힐 때 액션도 초기화
+  }, 2000);
+};
 
   const CommentItem = React.memo(function CommentItem({
   item,
@@ -153,7 +173,7 @@ const [localLikeCount, setLocalLikeCount] = useState(
 const  handleLikeSubmit = async (commentId: string)=>{
   
   if (isLoggedIn !== true) {
-    showSnackbar("로그인이 필요한 기능입니다."); 
+    showLoginSnackbar("로그인이 필요한 기능입니다."); 
     return;
   }
 
@@ -351,13 +371,12 @@ const iconlike = like ? likeTrue : likeFalse;
 
     try {
       await api.put(`comments/${fishId}/${commentId}`, { body });
-      Alert.alert("댓글 수정이 완료되었습니다.");
-      //버튼 왜 두번눌러야되는지 알아내야함
+      showPlainSnackbar("댓글 수정이 완료되었습니다.")      //버튼 왜 두번눌러야되는지 알아내야함
     } catch (err) {
       //접근 권한이 없는경우 만들어야함
       console.error("💬 댓글 수정 실패:", err);
       setComments(snapshot);
-      Alert.alert("오류", "댓글 수정에 실패했습니다.");
+      showPlainSnackbar("댓글 수정에 실패했습니다. 인터넷 연결 상태를 확인해주세요.");
     }
   };
 
@@ -377,22 +396,22 @@ const iconlike = like ? likeTrue : likeFalse;
   const handlePostComment = async () => {
 
      if (isLoggedIn !== true) {
-    showSnackbar("로그인이 필요한 기능입니다."); 
+    showLoginSnackbar("로그인이 필요한 기능입니다."); 
     return;
   }
 
     const body = newComment.body?.trim();
-    if (!fishId) return Alert.alert("잘못된 접근입니다.");
-    if (!body) return Alert.alert("알림", "댓글 내용을 입력하세요.");
+    if (!fishId) return showPlainSnackbar("잘못된 접근입니다.");
+    if (!body) return showPlainSnackbar("댓글 내용을 입력해주세요.");
 
     setPosting(true);
     try {
       await api.post(`comments/${fishId}/new`, { body });
       setNewComment(prev => ({ ...prev, body: "" }));
-      Alert.alert("댓글 입력이 완료되었습니다.");
+      showPlainSnackbar("댓글 입력이 완료되었습니다.");
     } catch (err: any) {
       console.error("💬 댓글 등록 실패:", err?.response?.data ?? err);
-      Alert.alert("오류", "댓글 등록에 실패했습니다.");
+      showPlainSnackbar("댓글 등록에 실패했습니다.");
     } finally {
       setPosting(false);
       // 입력창 다시 포커스 주고 싶으면:
@@ -667,8 +686,20 @@ const iconlike = like ? likeTrue : likeFalse;
           </View>
         </>
       )}
-      <Snackbar visible={snackbarVisible} message={snackbarMessage} bottom={20} />
-    </KeyboardAwareScrollView>
+          <Snackbar
+            visible={snackbarVisible}
+            message={snackbarMessage}
+            bottom={20}
+            action={
+              snackbarMessage === "로그인이 필요한 기능입니다."
+                ? {
+                    label: "로그인",
+                    onPress: () => router.push("/login"),
+                  }
+                : undefined
+            }
+          />
+      </KeyboardAwareScrollView>
   </TouchableWithoutFeedback>
   );
 }
