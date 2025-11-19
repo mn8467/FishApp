@@ -182,7 +182,7 @@ const moveLoginPage = async() => {
                   <Snackbar
                     visible={snackbarVisible}
                     message={snackbarMessage}
-                    bottom={20}
+                    bottom={60}
                     action={
                       snackbarMessage === "로그인이 필요한 기능입니다."
                         ? {

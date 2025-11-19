@@ -46,6 +46,7 @@ export default function Login() {
     }
   };
 
+  // 아이디 틀렸을때 , 비밀번호 틀렸을때 트러블 슈팅 필요
   const handleSubmit = async () => {
     if (!form.userName || !form.password) {
       showPlainSnackbar("아이디와 비밀번호를 입력해주세요.");
@@ -114,7 +115,7 @@ export default function Login() {
                         <Snackbar
                           visible={snackbarVisible}
                           message={snackbarMessage}
-                          bottom={20}
+                          bottom={60}
                           action={
                             snackbarMessage === "로그인이 필요한 기능입니다."
                               ? {
