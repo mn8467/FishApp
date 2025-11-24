@@ -40,6 +40,7 @@ export async function findByUserIdforCache(user_id:string): Promise<UserDTO>{
 
 export async function findByUserId(user_id: number): Promise<authUserRow | null> {
   const sql = `
+  
     SELECT user_id, user_name, nickname, password, email, user_role, user_status, created_at, updated_at
     FROM users
     WHERE user_id = $1

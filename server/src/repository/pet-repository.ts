@@ -22,8 +22,9 @@ export async function findPetForHome(): Promise<PetForHomeDTO[]>{
 }
 
 //f,fs를 변수명으로 쓰는 이유 : 읽자마자 어떤 테이블인지 직관적.
-// 선택한 fish 만 찾는 단건 조회
-export async function findByFishId(fish_id:number): Promise<FishAllDataDTO> {
+// 선택한 pet 만 찾는 단건 조회
+// 보여줄 데이터 업데이트 중... ++ model 캡쳐 추가 -- 2025/11/24
+export async function findByPetId(fish_id:number): Promise<FishAllDataDTO> {
   const sql = `
                 SELECT
                     p.pet_id,
