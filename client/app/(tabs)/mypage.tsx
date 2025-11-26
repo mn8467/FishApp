@@ -8,7 +8,7 @@ import { useVerifyTokenUsable } from "@/hooks/useCanUseToken";
 import { AuthContext } from "@/utils/providers/StateProvider";
 import { getAuth } from "@/api/checktoken";
 import { useFocusEffect } from "@react-navigation/native";
-import Snackbar from "@/components/ui/snackbar"; // 🔹 이것만 남기고
+import Snackbar from "@/components/ui/snackbar"; 
 import { styles } from "@/components/styles/mypagestyle";
 import { SnackbarAction } from "@/types/snackbar";
 

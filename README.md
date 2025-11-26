@@ -64,3 +64,10 @@
 
 데이터 모으는 것이 생각보다 쉽지가 않아서 힘들다..
 
+
+===========================================================================
+
+petdetail 디자인 초안 완성..!
+
+<img src= "C:\Users\mn846\OneDrive\Desktop\FishApp\client\assets\images\draft.jpg" width="700" height="370">
+
