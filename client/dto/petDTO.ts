@@ -1,6 +1,6 @@
-export interface getPetDTO{
-    petId: string;
-    petGrade: string;
+export interface GetPetDTO{
+    petId: number;
+    petGrade: number;
     petName: string;
     petPortraitUrl: string;
 }

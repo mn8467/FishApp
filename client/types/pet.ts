@@ -1,6 +1,6 @@
 export type Pet = { 
     petId: string;
-    petGrade: string;
+    petGrade: number;
     petName: string;
     petPortraitUrl: string;
 };

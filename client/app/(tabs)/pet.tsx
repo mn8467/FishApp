@@ -7,23 +7,53 @@ import { useRouter } from "expo-router";
 import { styles } from "@/components/styles/homestyle";
 import { Pet } from "@/types/pet";
 import { GetPetDTO } from "@/dto/petDTO";
+import PetIconFrame from "@/components/petIconframe";
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const gradeColors: { [key: number]: { outer: string; inner: string } } = {
+  1: { outer: "#1e713b", inner: "#20914c" }, // 초록
+  2: { outer: "#1b59af", inner: "#152c48" }, // 파랑
+  3: { outer: "#6e45c9", inner: "#5f4270" }, // 보라
+  4: { outer: "#b62986", inner: "#7b376e" }, // 핑크
+};
+
+function getGradeColors(grade: number) {
+  return gradeColors[grade] ?? gradeColors[1]; // 기본은 초록
+}
 
 function PetItem({ item, size, onPress }: { item: Pet; size: number; onPress: () => void }) {
   const scale = useRef(new Animated.Value(1)).current;
-  const onPressIn = () => Animated.spring(scale, { toValue: 0.9, useNativeDriver: true, friction: 5, tension: 150 }).start();
-  const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 150 }).start();
+  const onPressIn = () =>
+    Animated.spring(scale, { toValue: 0.9, useNativeDriver: true, friction: 5, tension: 150 }).start();
+  const onPressOut = () =>
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 150 }).start();
+
+  const { outer, inner } = getGradeColors(item.petGrade);
 
   return (
-    <AnimatedPressable onPressIn={onPressIn} onPressOut={onPressOut} onPress={onPress} style={[styles.cell, { width: size, transform: [{ scale }] }]}>
-      <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}>
-        {!!item.petPortraitUrl && <Image source={{ uri: item.petPortraitUrl }} style={styles.image} />}
-      </View>
-      <Text style={styles.caption} numberOfLines={1}>{item.petName}</Text>
+    <AnimatedPressable
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      onPress={onPress}
+      style={[styles.cell, { width: size, transform: [{ scale }] }]}
+    >
+      <PetIconFrame size={size} outerColor={outer} innerColor={inner}>
+        {!!item.petPortraitUrl && (
+          <Image
+            source={{ uri: item.petPortraitUrl }}
+            style={styles.image}
+            resizeMode="contain"
+          />
+        )}
+      </PetIconFrame>
+
+      <Text style={styles.caption} numberOfLines={1}>
+        {item.petName}
+      </Text>
     </AnimatedPressable>
   );
 }
-
 export default function Home() {
   const router = useRouter();
   const [query, setQuery] = useState("");
