@@ -1,4 +1,4 @@
-export interface PetForHomeDTO{
+export interface ResponsePetInfoDTO{
         pet_id: number 
 		pet_grade: string 
 		pet_name: string

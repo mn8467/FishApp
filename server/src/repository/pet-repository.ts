@@ -1,9 +1,9 @@
 import pool from "../db";
 import { NotFoundError,DbError } from "../utils/error";  
 import type{ FishAllDataDTO, FishForHomeDTO, FishResponseDTO } from "../dto/fish-dto";
-import { PetForHomeDTO } from "../dto/pet-dto";
+import { ResponsePetInfoDTO } from "../dto/pet-dto";
 
-export async function findPetForHome(): Promise<PetForHomeDTO[]>{
+export async function findPetForHome(): Promise<ResponsePetInfoDTO[]>{
   const sql =`
               SELECT
                 pet_id AS "petId",
@@ -14,7 +14,7 @@ export async function findPetForHome(): Promise<PetForHomeDTO[]>{
               ORDER BY pet_grade ASC;
              `
     try {
-    const { rows } = await pool.query<PetForHomeDTO>(sql);
+    const { rows } = await pool.query<ResponsePetInfoDTO>(sql);
     return rows; // [] 가능
   } catch (e) {
     throw new DbError("DbError 발생", e);
