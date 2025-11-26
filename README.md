@@ -70,4 +70,5 @@
 petdetail 디자인 초안 완성..!
 
 <img src= "C:\Users\mn846\OneDrive\Desktop\FishApp\client\assets\images\draft.jpg" width="700" height="370">
+![draft](https://github.com/user-attachments/assets/588c335c-8288-4eb0-be77-d7743167919c)
 
