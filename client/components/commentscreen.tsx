@@ -1,7 +1,7 @@
 // screens/CommentScreen.tsx
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import YoutubeComments, { Comment } from "@/components/comment";
+import YoutubeComments, { Comment } from "@/components/commentparts";
 
 export default function CommentScreen() {
   const [input, setInput] = useState("");

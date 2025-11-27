@@ -7,20 +7,8 @@ import { useRouter } from "expo-router";
 import { styles } from "@/components/styles/homestyle";
 import { Pet } from "@/types/pet";
 import { GetPetDTO } from "@/dto/petDTO";
-import PetIconFrame from "@/components/petIconframe";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-const gradeColors: { [key: number]: { outer: string; inner: string } } = {
-  1: { outer: "#1e713b", inner: "#20914c" }, // 초록
-  2: { outer: "#1b59af", inner: "#152c48" }, // 파랑
-  3: { outer: "#6e45c9", inner: "#5f4270" }, // 보라
-  4: { outer: "#b62986", inner: "#7b376e" }, // 핑크
-};
-
-function getGradeColors(grade: number) {
-  return gradeColors[grade] ?? gradeColors[1]; // 기본은 초록
-}
 
 function PetItem({ item, size, onPress }: { item: Pet; size: number; onPress: () => void }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -29,8 +17,6 @@ function PetItem({ item, size, onPress }: { item: Pet; size: number; onPress: ()
   const onPressOut = () =>
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 150 }).start();
 
-  const { outer, inner } = getGradeColors(item.petGrade);
-
   return (
     <AnimatedPressable
       onPressIn={onPressIn}
@@ -38,15 +24,23 @@ function PetItem({ item, size, onPress }: { item: Pet; size: number; onPress: ()
       onPress={onPress}
       style={[styles.cell, { width: size, transform: [{ scale }] }]}
     >
-      <PetIconFrame size={size} outerColor={outer} innerColor={inner}>
+      {/* ✅ 테두리 없이, 초상화 이미지 자체만 보여주기 */}
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size * 0.25, // 살짝 둥글게 (아이콘 느낌)
+          overflow: "hidden",        // 모서리 밖은 잘라내기
+        }}
+      >
         {!!item.petPortraitUrl && (
           <Image
             source={{ uri: item.petPortraitUrl }}
-            style={styles.image}
-            resizeMode="contain"
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="contain"   // 이미지 전체(틀 포함) 나오게
           />
         )}
-      </PetIconFrame>
+      </View>
 
       <Text style={styles.caption} numberOfLines={1}>
         {item.petName}
